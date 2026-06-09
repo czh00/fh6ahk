@@ -1,0 +1,4 @@
+# 忽略 AHK 備份檔案
+fh6_2606*.ahk
+fh6.txt
+fh6_portable/
