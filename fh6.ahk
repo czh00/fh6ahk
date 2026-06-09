@@ -76,12 +76,13 @@ MyGui.BackColor := "010101"
 
 global GuiBtns := []
 global btnConfigs := [
-    { symbol: "🚗", x: 0,   fn: (*) => (isBuyCarRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleBuyCarSequence() : "")) },
-    { symbol: "⚔", x: 40,  fn: (*) => (isNewSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleNewSequence() : "")) },
-    { symbol: "🎰", x: 80,  fn: (*) => (isEnterSpamRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleEnterSpam() : "")) },
-    { symbol: "⚡", x: 120, fn: (*) => (isSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleLButtonSequence() : "")) },
-    { symbol: "🏆", x: 160, fn: (*) => (isGasOn ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleGas() : "")) },
-    { symbol: "⏏", x: 200, fn: (*) => (StopGasAndClean(), MyGui.Destroy(), ExitApp()) }
+    { symbol: "␛", x: 0,   fn: (*) => (WinActive(GameTitle) ? Send("{Esc}") : "") },
+    { symbol: "🚗", x: 40,  fn: (*) => (isBuyCarRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleBuyCarSequence() : "")) },
+    { symbol: "⚔", x: 80,  fn: (*) => (isNewSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleNewSequence() : "")) },
+    { symbol: "🎰", x: 120, fn: (*) => (isEnterSpamRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleEnterSpam() : "")) },
+    { symbol: "⚡", x: 160, fn: (*) => (isSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleLButtonSequence() : "")) },
+    { symbol: "🏆", x: 200, fn: (*) => (isGasOn ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleGas() : "")) },
+    { symbol: "⏏", x: 240, fn: (*) => (StopGasAndClean(), MyGui.Destroy(), ExitApp()) }
 ]
 
 MyGui.SetFont("s16", "Segoe UI Emoji")
@@ -117,7 +118,7 @@ UpdateUiRunningState(runningIdx) {
         }
     }
     
-    if (runningIdx == 3 || runningIdx == 5) {
+    if (runningIdx == 4 || runningIdx == 6) {
         ProgressBar.Visible := false
         ProgressText.Visible := false
         MyGui.Show("X" GuiX " Y" GuiY " W40 h" GuiH " NoActivate")
@@ -133,7 +134,7 @@ ResetUiToNormal() {
     global GuiBtns, MyGui, GuiX, GuiY, GuiH, GuiOpacity, ProgressBar, ProgressText, GameTitle
     ProgressBar.Visible := false
     ProgressText.Visible := false
-    xCoords := [0, 40, 80, 120, 160, 200]
+    xCoords := [0, 40, 80, 120, 160, 200, 240]
     for idx, btn in GuiBtns {
         btn.Move(xCoords[idx], -2)
         btn.Visible := true
@@ -141,7 +142,7 @@ ResetUiToNormal() {
     
     currentActive := WinActive(GameTitle) || WinActive("ahk_id " MyGui.Hwnd)
     if (currentActive) {
-        MyGui.Show("X" GuiX " Y" GuiY " W240 h" GuiH " NoActivate")
+        MyGui.Show("X" GuiX " Y" GuiY " W280 h" GuiH " NoActivate")
         WinSetTransparent(GuiOpacity, MyGui.Hwnd)
     }
 }
@@ -539,7 +540,7 @@ RunEnterSpamSequence() {
     }
 
     isEnterSpamRunning := true
-    UpdateUiRunningState(3)
+    UpdateUiRunningState(4)
 
     if WinExist(GameTitle) {
         WinActivate(GameTitle)
@@ -625,7 +626,7 @@ RunLButtonSequence() {
 
     DrawDividers(LoopCountLimit)
     sequenceStartTime := A_TickCount
-    UpdateUiRunningState(4)
+    UpdateUiRunningState(5)
     SetTimer(UpdateLoopProgress, 100)
 
     SendKey(key, delay) {
@@ -721,7 +722,7 @@ WatchGameWindow() {
             
             isRunning := (isSequenceRunning || isNewSequenceRunning || isBuyCarRunning || isEnterSpamRunning || isGasOn)
             if (isRunning) {
-                runIdx := isBuyCarRunning ? 1 : (isNewSequenceRunning ? 2 : (isEnterSpamRunning ? 3 : (isSequenceRunning ? 4 : 5)))
+                runIdx := isBuyCarRunning ? 2 : (isNewSequenceRunning ? 3 : (isEnterSpamRunning ? 4 : (isSequenceRunning ? 5 : 6)))
                 UpdateUiRunningState(runIdx)
             } else {
                 ResetUiToNormal()
@@ -772,7 +773,7 @@ ToggleGas() {
     }
 
     isGasOn := true
-    UpdateUiRunningState(5)
+    UpdateUiRunningState(6)
     SetTimer(InfiniteGasLoop, -10)
 }
 
@@ -823,7 +824,7 @@ RunNewSequence() {
 
     DrawDividers(NewSequenceLoopLimit)
     sequenceStartTime := A_TickCount
-    UpdateUiRunningState(2)
+    UpdateUiRunningState(3)
     SetTimer(UpdateNewLoopProgress, 100)
 
     SleepAndCheck(ms) {
@@ -935,7 +936,7 @@ RunBuyCarSequence() {
 
     DrawDividers(BuyCarLoopLimit)
     sequenceStartTime := A_TickCount
-    UpdateUiRunningState(1)
+    UpdateUiRunningState(2)
     SetTimer(UpdateBuyCarLoopProgress, 100)
 
     SleepAndCheck(ms) {
