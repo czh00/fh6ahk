@@ -26,9 +26,9 @@ OnExit( (*) => (
 ; =================================================================
 global LoadVehicleDelay := 11   ; 等待車輛載入時間（秒）
 global LongPressDelay := 3.0     ; 手把長按偵測時間（秒）
-global WHoldDuration := 60       ; 賺技能點時按住油門前進的時間（秒）
-global GameTitle := "ahk_exe ForzaHorizon6.exe" ; 遊戲視窗標題名稱
-global GameTitle := "ahk_exe notepad.exe" ; 測試用
+global WHoldDuration := 34       ; 賺技能點時按住油門前進的時間（秒）
+GroupAdd("GameGroup","ahk_exe ForzaHorizon6.exe") ; 遊戲視窗標題名稱
+GroupAdd("GameGroup","ahk_exe notepad.exe") ; 測試用
 global ConfirmState := { result: false, isWaiting: false }
 
 ; [行程循環次數設定]
@@ -46,7 +46,7 @@ global GuiY := 0
 global GuiH := 30
 global GuiOpacity := 180
 global ProgressBarWidth := 610
-global IsSimplifyDividers := true ; 是否簡化進度條格數，當超過等於20次後會每10次畫一格
+global IsSimplifyDividers := false ; 是否簡化進度條格數，當超過等於20次後會每10次畫一格
 
 ; [動態分格 UI 陣列]
 global DividerCtrls := []
