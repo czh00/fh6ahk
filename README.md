@@ -97,7 +97,7 @@
 7. 選擇滿技能的 **SUBARU 22B 1998** 要注意不能改車改了跑太快飛太遠反而賺比較少。
 8. 停在此畫面時，點擊懸浮 UI 的 **⚔** 圖示即可開始自動刷技能點。
 
-<img width="1469" height="1126" alt="Quicker_20260609_164935" src="https://github.com/user-attachments/assets/37720731-c164-4b52-b7c5-90e0f359f496" />
+<img width="1920" height="1200" alt="Forza Horizon 6 26_6_11_週四 下午 08_05_43" src="https://github.com/user-attachments/assets/2aa141a5-9c80-4771-94b8-12ab5d5956fb" />
 
 ---
 
