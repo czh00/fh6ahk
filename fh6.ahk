@@ -29,6 +29,7 @@ global LongPressDelay := 3.0     ; 手把長按偵測時間（秒）
 global WHoldDuration := 34       ; 賺技能點時按住油門前進的時間（秒）
 GroupAdd("GameGroup","ahk_exe ForzaHorizon6.exe") ; 遊戲視窗標題名稱
 GroupAdd("GameGroup","ahk_exe notepad.exe") ; 測試用
+global GameTitle := "ahk_group GameGroup" ; 將視窗目標指向群組
 global ConfirmState := { result: false, isWaiting: false }
 
 ; [行程循環次數設定]
@@ -896,8 +897,8 @@ RunNewSequence() {
             break
         }
 
-        ShowTip("5. 等待十秒")
-        if (!SleepAndCheck(10000)) {
+        ShowTip("5. 等待8秒")
+        if (!SleepAndCheck(8000)) {
             break
         }
     }
