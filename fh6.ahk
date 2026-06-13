@@ -1,6 +1,6 @@
 ; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
-; 版本: 1.1.0
+; 版本: 1.1.1
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
 ;       採用橫向懸浮按鈕 UI，並完美支援 Xbox 手把與鍵盤的雙向控制及狀態回饋。
 ; =================================================================
@@ -217,7 +217,7 @@ ClearDividers() {
 ; =================================================================
 ; --- 【無邊框沉浸式確認對話框】 ---
 ; =================================================================
-ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extraParams := "") {
+ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extraParams := "", limitName := "") {
     global GuiX, GuiY, GuiOpacity, GameTitle, ConfirmState, IsSimplifyDividers
 
     ConfirmGui := Gui("+AlwaysOnTop -Caption -Border +ToolWindow +Owner")
@@ -229,6 +229,8 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
     local sliderCtrl := "", chkSimplify := "", timeTextCtrl := "", labelTextCtrl := ""
     local extraSliderCtrls := []
     local extraLabelCtrls := []
+    local isSkillSeq := (limitName == "LoopCountLimit")
+    local gridCtrls := []
 
     UpdateTimeDisplay(*) {
         val := hasLimitSlider ? sliderCtrl.Value : 0
@@ -257,9 +259,48 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
         if (hasLimitSlider && labelTextCtrl) {
             if (isSimp && val >= 20) {
                 groupCount := Ceil(val / 10)
-                labelTextCtrl.Text := "預估總時間 (" val "次 / 簡化為" groupCount "格)："
+                labelTextCtrl.Text := "循環次數 (" val "次 / 簡化為" groupCount "格)："
             } else {
-                labelTextCtrl.Text := "預估總時間 (" val "次)："
+                labelTextCtrl.Text := "循環次數 (" val "次)："
+            }
+        }
+
+        if (isSkillSeq && gridCtrls.Length > 0) {
+            ; 找到對應的 BrandDownCount 與 BrandRightCount 滑桿值
+            ; 第一個 extraParam 是 LoadVehicleDelay，第二個是 BrandDownCount，第三個是 BrandRightCount
+            currentDown := extraSliderCtrls[2].Value
+            currentRight := extraSliderCtrls[3].Value
+
+            Loop 4 {
+                colIdx := A_Index - 1
+                Loop 12 {
+                    rowIdx := A_Index - 1
+                    ctrl := gridCtrls[colIdx + 1][rowIdx + 1]
+                    if (colIdx == currentRight && rowIdx == currentDown) {
+                        ctrl.Opt("+BackgroundYellow cBlack")
+                    } else {
+                        ctrl.Opt("+Background334455 cWhite")
+                    }
+                    ctrl.Redraw()
+                }
+            }
+        }
+    }
+
+    OnGridClick(ctrl, *) {
+        ; 搜尋被點選的格子在 gridCtrls 中的座標
+        Loop 4 {
+            cIdx := A_Index - 1
+            Loop 12 {
+                rIdx := A_Index - 1
+                if (gridCtrls[cIdx + 1][rIdx + 1].Hwnd == ctrl.Hwnd) {
+                    ; 更新對應滑桿的值
+                    extraSliderCtrls[2].Value := rIdx ; BrandDownCount
+                    extraSliderCtrls[3].Value := cIdx ; BrandRightCount
+                    ; 觸發重繪與計算
+                    UpdateTimeDisplay()
+                    return
+                }
             }
         }
     }
@@ -269,32 +310,45 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
     hasCheckbox := hasLimitSlider
 
     ; 視窗高度動態計算
-    guiH := 120
+    guiH := 180
     if (totalSliders > 0) {
         guiH := 100 + totalSliders * 48 + (hasCheckbox ? 40 : 0)
     }
 
     if (totalSliders > 0) {
-        ConfirmGui.SetFont("s18 Bold cWhite", "Microsoft JhengHei")
-        ConfirmGui.Add("Text", "x20 y12 w230 +BackgroundTrans", "【 " funcName " 】")
+        ConfirmGui.SetFont("s16 Bold cWhite", "Microsoft JhengHei")
+        ConfirmGui.Add("Text", "x20 y15 w180 +BackgroundTrans", "【 " funcName " 】")
 
-        ConfirmGui.SetFont("s22 Bold cYellow")
-        timeTextCtrl := ConfirmGui.Add("Text", "x250 y10 w190 Right +BackgroundTrans", timeStr)
+        ConfirmGui.SetFont("s13 Bold cYellow", "Microsoft JhengHei")
+        ConfirmGui.Add("Text", "x220 y18 w110 Right +BackgroundTrans", "預估總時間：")
+
+        ConfirmGui.SetFont("s20 Bold cYellow")
+        timeTextCtrl := ConfirmGui.Add("Text", "x280 y12 w160 Right +BackgroundTrans", timeStr)
 
         currY := 52
 
         if (hasLimitSlider) {
             initialLimit := %limitVarRef%
 
+            ; 判斷極限值變數的名稱，動態決定 Range
+            sliderRange := "1-100"
+            if (limitName == "LoopCountLimit") {
+                sliderRange := "1-25"
+            } else if (limitName == "NewSequenceLoopLimit") {
+                sliderRange := "1-120"
+            } else if (limitName == "BuyCarLoopLimit") {
+                sliderRange := "1-100"
+            }
+
             ConfirmGui.SetFont("s13 Bold cGray", "Microsoft JhengHei")
-            labelText := (IsSimplifyDividers && initialLimit >= 20) ? "預估總時間 (" initialLimit "次 / 簡化為" Ceil(initialLimit / 10) "格)：" : "預估總時間 (" initialLimit "次)："
+            labelText := (IsSimplifyDividers && initialLimit >= 20) ? "循環次數 (" initialLimit "次 / 簡化為" Ceil(initialLimit / 10) "格)：" : "循環次數 (" initialLimit "次)："
             labelTextCtrl := ConfirmGui.Add("Text", "x20 y" currY " w420 +BackgroundTrans", labelText)
 
             ConfirmGui.SetFont("s10 cWhite")
-            sliderCtrl := ConfirmGui.Add("Slider", "x20 y" (currY + 20) " w420 Range1-100 Tooltip", initialLimit)
+            sliderCtrl := ConfirmGui.Add("Slider", "x20 y" (currY + 20) " w420 Range" sliderRange " Tooltip", initialLimit)
             sliderCtrl.OnEvent("Change", UpdateTimeDisplay)
             
-            currY += 48
+            currY += 50
         }
 
         if (hasExtraParams) {
@@ -310,14 +364,51 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 sldCtrl.OnEvent("Change", UpdateTimeDisplay)
                 extraSliderCtrls.Push(sldCtrl)
 
-                currY += 48
+                currY += 50
             }
+        }
+
+        if (isSkillSeq) {
+            guiH += 260
         }
 
         if (hasCheckbox) {
             ConfirmGui.SetFont("s12 cWhite", "Microsoft JhengHei")
             chkSimplify := ConfirmGui.Add("Checkbox", "x20 y" currY " w420 Checked" (IsSimplifyDividers ? "1" : "0"), " 簡化進度條格數顯示")
             chkSimplify.OnEvent("Click", UpdateTimeDisplay)
+            currY += 40
+        }
+
+        if (isSkillSeq) {
+            ConfirmGui.SetFont("s11 Bold cWhite", "Microsoft JhengHei")
+            ConfirmGui.Add("Text", "x20 y" currY " w420 +BackgroundTrans", "廠牌位置預覽（可以直接點格子設定）：")
+            currY += 25
+
+            ; 建立 4(寬/欄/向右) x 12(高/列/向下) 的格網，標示文字為 1-1 到 4-12
+            Loop 4 {
+                colIdx := A_Index - 1
+                gridCol := []
+                Loop 12 {
+                    rowIdx := A_Index - 1
+                    
+                    ; 橫向 4 欄 (0 到 3)，分配在 420 像素寬度
+                    gridX := 20 + (colIdx * 105)
+                    ; 縱向 12 列 (0 到 11)
+                    gridY := currY + (rowIdx * 18)
+                    
+                    isTarget := (colIdx == BrandRightCount && rowIdx == BrandDownCount)
+                    colorOpt := isTarget ? "+BackgroundYellow cBlack" : "+Background334455 cWhite"
+                    
+                    ; 格式化文字標示，如 1-1、4-12
+                    gridText := (colIdx + 1) "-" (rowIdx + 1)
+                    
+                    ConfirmGui.SetFont("s8 Bold", "Microsoft JhengHei")
+                    ctrl := ConfirmGui.Add("Text", "x" gridX " y" gridY " w95 h15 Center +0x200 " colorOpt, gridText)
+                    ctrl.OnEvent("Click", OnGridClick)
+                    gridCol.Push(ctrl)
+                }
+                gridCtrls.Push(gridCol)
+            }
         }
 
         ; 按鈕尺寸與擺放
@@ -326,19 +417,18 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
         btnConfirm := ConfirmGui.Add("Text", "x460 y20 w100 h" btnH " Center +0x200 +Border +Background020202", "⭕")
         btnCancel := ConfirmGui.Add("Text", "x460 y" (20 + btnH + 10) " w100 h" btnH " Center +0x200 +Border +Background020202", "❌")
     } else {
-        ConfirmGui.SetFont("s22 Bold cWhite", "Microsoft JhengHei")
-        ConfirmGui.Add("Text", "x20 y20 w420 Center +BackgroundTrans", "【 " funcName " 】")
+        ConfirmGui.SetFont("s20 Bold cWhite", "Microsoft JhengHei")
+        ConfirmGui.Add("Text", "x20 y20 w240 +BackgroundTrans", "【 " funcName " 】")
 
-        ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
-        labelText := (timeStr == "∞") ? "預估總執行時間 (∞次)：" : "預估總執行時間："
-        ConfirmGui.Add("Text", "x20 y65 w420 Center +BackgroundTrans", labelText)
+        ConfirmGui.SetFont("s16 Bold cYellow", "Microsoft JhengHei")
+        ConfirmGui.Add("Text", "x240 y25 w160 Right +BackgroundTrans", "預估總時間：")
 
-        ConfirmGui.SetFont("s28 Bold cYellow")
-        ConfirmGui.Add("Text", "x20 y100 w420 Center +BackgroundTrans", timeStr)
+        ConfirmGui.SetFont("s24 Bold cYellow")
+        ConfirmGui.Add("Text", "x330 y18 w110 Right +BackgroundTrans", timeStr)
 
         ConfirmGui.SetFont("s32", "Segoe UI Emoji")
-        btnConfirm := ConfirmGui.Add("Text", "x460 y20 w100 h65 Center +0x200 +Border +Background020202", "⭕")
-        btnCancel := ConfirmGui.Add("Text", "x460 y100 w100 h65 Center +0x200 +Border +Background020202", "❌")
+        btnConfirm := ConfirmGui.Add("Text", "x460 y25 w100 h60 Center +0x200 +Border +Background020202", "⭕")
+        btnCancel := ConfirmGui.Add("Text", "x460 y95 w100 h60 Center +0x200 +Border +Background020202", "❌")
     }
 
     ConfirmGui.Show("X" GuiX " Y" GuiY " W580 H" guiH " NoActivate")
@@ -732,7 +822,7 @@ RunLButtonSequence() {
     ]
     
     isConfirming := true
-    confirmed := ShowConfirmDialog("技能行程 ⚡", timeStr, &LoopCountLimit, recalcFn, extraParams)
+    confirmed := ShowConfirmDialog("技能行程 ⚡", timeStr, &LoopCountLimit, recalcFn, extraParams, "LoopCountLimit")
     isConfirming := false
  
     if (!confirmed) {
@@ -966,7 +1056,7 @@ RunNewSequence() {
     ]
 
     isConfirming := true
-    confirmed := ShowConfirmDialog("賺技能點 ⚔", timeStr, &NewSequenceLoopLimit, recalcFn, extraParams)
+    confirmed := ShowConfirmDialog("賺技能點 ⚔", timeStr, &NewSequenceLoopLimit, recalcFn, extraParams, "NewSequenceLoopLimit")
     isConfirming := false
 
     if (!confirmed) {
@@ -1081,7 +1171,7 @@ RunBuyCarSequence() {
     timeStr := recalcFn(BuyCarLoopLimit)
     
     isConfirming := true
-    confirmed := ShowConfirmDialog("買車行程 🚗", timeStr, &BuyCarLoopLimit, recalcFn)
+    confirmed := ShowConfirmDialog("買車行程 🚗", timeStr, &BuyCarLoopLimit, recalcFn, , "BuyCarLoopLimit")
     isConfirming := false
 
     if (!confirmed) {
