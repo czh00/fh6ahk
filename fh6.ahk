@@ -1,6 +1,6 @@
 ; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
-; 版本: 1.0.0
+; 版本: 1.1.0
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
 ;       採用橫向懸浮按鈕 UI，並完美支援 Xbox 手把與鍵盤的雙向控制及狀態回饋。
 ; =================================================================
@@ -33,13 +33,13 @@ global GameTitle := "ahk_group GameGroup" ; 將視窗目標指向群組
 global ConfirmState := { result: false, isWaiting: false }
 
 ; [行程循環次數設定]
-global LoopCountLimit := 10       ; 技能行程循環次數
+global LoopCountLimit := 25       ; 技能行程循環次數
 global NewSequenceLoopLimit := 50 ; 賺技能點行程循環次數
-global BuyCarLoopLimit := 23      ; 買車行程循環次數
+global BuyCarLoopLimit := 26      ; 買車行程循環次數
 
 ; [點技能選廠牌位置]
 global BrandDownCount := 9
-global BrandRightCount := 1
+global BrandRightCount := 2
 
 ; [觸控按鈕位置與進度條設定]
 global GuiX := 0
@@ -47,7 +47,7 @@ global GuiY := 0
 global GuiH := 30
 global GuiOpacity := 180
 global ProgressBarWidth := 610
-global IsSimplifyDividers := false ; 是否簡化進度條格數，當超過等於20次後會每10次畫一格
+global IsSimplifyDividers := false ; 簡化進度條格數（簡化後每十次畫一格避免太密集）
 
 ; [動態分格 UI 陣列]
 global DividerCtrls := []
@@ -78,14 +78,24 @@ MyGui.BackColor := "010101"
 
 global GuiBtns := []
 global btnConfigs := [
-    { symbol: "␛", x: 0,   fn: (*) => (WinActive(GameTitle) ? Send("{Esc}") : "") },
-    { symbol: "🚗", x: 40,  fn: (*) => (isBuyCarRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleBuyCarSequence() : "")) },
-    { symbol: "⚔", x: 80,  fn: (*) => (isNewSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleNewSequence() : "")) },
-    { symbol: "🎰", x: 120, fn: (*) => (isEnterSpamRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleEnterSpam() : "")) },
-    { symbol: "⚡", x: 160, fn: (*) => (isSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleLButtonSequence() : "")) },
-    { symbol: "🏆", x: 200, fn: (*) => (isGasOn ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleGas() : "")) },
-    { symbol: "⏏", x: 240, fn: (*) => (StopGasAndClean(), MyGui.Destroy(), ExitApp()) }
+    { name: "esc",       symbol: "␛", x: 0,   fn: (*) => (WinActive(GameTitle) ? Send("{Esc}") : "") },
+    { name: "buyCar",    symbol: "🚗", x: 40,  fn: (*) => (isBuyCarRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleBuyCarSequence() : "")) },
+    { name: "newSeq",    symbol: "⚔", x: 80,  fn: (*) => (isNewSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleNewSequence() : "")) },
+    { name: "seq",       symbol: "⚡", x: 120, fn: (*) => (isSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleLButtonSequence() : "")) },
+    { name: "enterSpam", symbol: "🎰", x: 160, fn: (*) => (isEnterSpamRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleEnterSpam() : "")) },
+    { name: "gas",       symbol: "🏆", x: 200, fn: (*) => (isGasOn ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleGas() : "")) },
+    { name: "exit",      symbol: "⏏", x: 240, fn: (*) => (StopGasAndClean(), MyGui.Destroy(), ExitApp()) }
 ]
+
+GetBtnIndex(name) {
+    global btnConfigs
+    for idx, cfg in btnConfigs {
+        if (cfg.HasOwnProp("name") && cfg.name == name) {
+            return idx
+        }
+    }
+    return 0
+}
 
 MyGui.SetFont("s16", "Segoe UI Emoji")
 for idx, cfg in btnConfigs {
@@ -108,8 +118,9 @@ MyGui.SetFont("s16 Bold", "Microsoft JhengHei")
 global ProgressText := MyGui.Add("Text", "cBlack x45 y1 w" . ProgressBarWidth . " h28 +BackgroundTrans +0x200", "")
 
 ; 定義 UI 切換輔助函數
-UpdateUiRunningState(runningIdx) {
+UpdateUiRunningState(btnName) {
     global GuiBtns, MyGui, GuiX, GuiY, GuiH, GuiOpacity, ProgressBar, ProgressText
+    runningIdx := GetBtnIndex(btnName)
     for idx, btn in GuiBtns {
         if (idx == runningIdx) {
             btn.Move(0, -2)
@@ -120,7 +131,7 @@ UpdateUiRunningState(runningIdx) {
         }
     }
     
-    if (runningIdx == 4 || runningIdx == 6) {
+    if (btnName == "enterSpam" || btnName == "gas") {
         ProgressBar.Visible := false
         ProgressText.Visible := false
         MyGui.Show("X" GuiX " Y" GuiY " W40 h" GuiH " NoActivate")
@@ -133,18 +144,17 @@ UpdateUiRunningState(runningIdx) {
 }
 
 ResetUiToNormal() {
-    global GuiBtns, MyGui, GuiX, GuiY, GuiH, GuiOpacity, ProgressBar, ProgressText, GameTitle
+    global GuiBtns, MyGui, GuiX, GuiY, GuiH, GuiOpacity, ProgressBar, ProgressText, GameTitle, btnConfigs
     ProgressBar.Visible := false
     ProgressText.Visible := false
-    xCoords := [0, 40, 80, 120, 160, 200, 240]
     for idx, btn in GuiBtns {
-        btn.Move(xCoords[idx], -2)
+        btn.Move(btnConfigs[idx].x, -2)
         btn.Visible := true
     }
     
     currentActive := WinActive(GameTitle) || WinActive("ahk_id " MyGui.Hwnd)
     if (currentActive) {
-        MyGui.Show("X" GuiX " Y" GuiY " W280 h" GuiH " NoActivate")
+        MyGui.Show("X" GuiX " Y" GuiY " W" . (btnConfigs.Length * 40) . " h" . GuiH . " NoActivate")
         WinSetTransparent(GuiOpacity, MyGui.Hwnd)
     }
 }
@@ -207,39 +217,131 @@ ClearDividers() {
 ; =================================================================
 ; --- 【無邊框沉浸式確認對話框】 ---
 ; =================================================================
-ShowConfirmDialog(funcName, timeStr, totalCount := 0) {
+ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extraParams := "") {
     global GuiX, GuiY, GuiOpacity, GameTitle, ConfirmState, IsSimplifyDividers
 
     ConfirmGui := Gui("+AlwaysOnTop -Caption -Border +ToolWindow +Owner")
     ConfirmGui.BackColor := "010101"
 
-    ConfirmGui.SetFont("s22 Bold cWhite", "Microsoft JhengHei")
-    ConfirmGui.Add("Text", "x20 y20 w520 Center +BackgroundTrans", "【 " funcName " 】")
+    hasLimitSlider := IsSet(limitVarRef) && Type(limitVarRef) == "VarRef"
+    hasExtraParams := IsObject(extraParams) && extraParams.Length > 0
 
-    ConfirmGui.SetFont("s18 Bold cGray", "Microsoft JhengHei")
+    local sliderCtrl := "", chkSimplify := "", timeTextCtrl := "", labelTextCtrl := ""
+    local extraSliderCtrls := []
+    local extraLabelCtrls := []
 
-    if (totalCount == "∞") {
-        displayText := "預估總執行時間 (∞次)："
-    } else if (totalCount > 0) {
-        if (IsSimplifyDividers && totalCount >= 20) {
-            groupCount := Ceil(totalCount / 10)
-            displayText := "預估總執行時間 (" totalCount "次 / 簡化為" groupCount "格)："
-        } else {
-            displayText := "預估總執行時間 (" totalCount "次)："
+    UpdateTimeDisplay(*) {
+        val := hasLimitSlider ? sliderCtrl.Value : 0
+        isSimp := chkSimplify ? chkSimplify.Value : IsSimplifyDividers
+        
+        vals := []
+        if (hasLimitSlider) {
+            vals.Push(val)
         }
-    } else {
-        displayText := "預估總執行時間："
+        
+        if (hasExtraParams) {
+            for idx, item in extraParams {
+                ctrlVal := extraSliderCtrls[idx].Value
+                vals.Push(ctrlVal)
+                extraLabelCtrls[idx].Text := item.name " (" ctrlVal ")："
+            }
+        }
+
+        if (recalcFn) {
+            newTimeStr := recalcFn(vals*)
+            if (newTimeStr != "" && timeTextCtrl) {
+                timeTextCtrl.Text := newTimeStr
+            }
+        }
+        
+        if (hasLimitSlider && labelTextCtrl) {
+            if (isSimp && val >= 20) {
+                groupCount := Ceil(val / 10)
+                labelTextCtrl.Text := "預估總時間 (" val "次 / 簡化為" groupCount "格)："
+            } else {
+                labelTextCtrl.Text := "預估總時間 (" val "次)："
+            }
+        }
     }
-    ConfirmGui.Add("Text", "x20 y70 w520 Center +BackgroundTrans", displayText)
 
-    ConfirmGui.SetFont("s28 Bold cYellow")
-    ConfirmGui.Add("Text", "x20 y110 w520 Center +BackgroundTrans", timeStr)
+    ; 計算佈局位置與高度
+    totalSliders := (hasLimitSlider ? 1 : 0) + (hasExtraParams ? extraParams.Length : 0)
+    hasCheckbox := hasLimitSlider
 
-    ConfirmGui.SetFont("s18 Bold cWhite")
-    btnConfirm := ConfirmGui.Add("Text", "x20 y180 w250 h50 Center +BackgroundTrans +0x200", "[手把A / Enter] 確認")
-    btnCancel := ConfirmGui.Add("Text", "x290 y180 w250 h50 Center +BackgroundTrans +0x200", "[手把B / Esc] 取消")
+    ; 視窗高度動態計算
+    guiH := 120
+    if (totalSliders > 0) {
+        guiH := 100 + totalSliders * 48 + (hasCheckbox ? 40 : 0)
+    }
 
-    ConfirmGui.Show("X" GuiX " Y" GuiY " W560 H240 NoActivate")
+    if (totalSliders > 0) {
+        ConfirmGui.SetFont("s18 Bold cWhite", "Microsoft JhengHei")
+        ConfirmGui.Add("Text", "x20 y12 w230 +BackgroundTrans", "【 " funcName " 】")
+
+        ConfirmGui.SetFont("s22 Bold cYellow")
+        timeTextCtrl := ConfirmGui.Add("Text", "x250 y10 w190 Right +BackgroundTrans", timeStr)
+
+        currY := 52
+
+        if (hasLimitSlider) {
+            initialLimit := %limitVarRef%
+
+            ConfirmGui.SetFont("s13 Bold cGray", "Microsoft JhengHei")
+            labelText := (IsSimplifyDividers && initialLimit >= 20) ? "預估總時間 (" initialLimit "次 / 簡化為" Ceil(initialLimit / 10) "格)：" : "預估總時間 (" initialLimit "次)："
+            labelTextCtrl := ConfirmGui.Add("Text", "x20 y" currY " w420 +BackgroundTrans", labelText)
+
+            ConfirmGui.SetFont("s10 cWhite")
+            sliderCtrl := ConfirmGui.Add("Slider", "x20 y" (currY + 20) " w420 Range1-100 Tooltip", initialLimit)
+            sliderCtrl.OnEvent("Change", UpdateTimeDisplay)
+            
+            currY += 48
+        }
+
+        if (hasExtraParams) {
+            for idx, item in extraParams {
+                initialVal := %(item.varRef)%
+
+                ConfirmGui.SetFont("s13 Bold cGray", "Microsoft JhengHei")
+                lblCtrl := ConfirmGui.Add("Text", "x20 y" currY " w420 +BackgroundTrans", item.name " (" initialVal ")：")
+                extraLabelCtrls.Push(lblCtrl)
+
+                ConfirmGui.SetFont("s10 cWhite")
+                sldCtrl := ConfirmGui.Add("Slider", "x20 y" (currY + 20) " w420 Range" item.range " Tooltip", initialVal)
+                sldCtrl.OnEvent("Change", UpdateTimeDisplay)
+                extraSliderCtrls.Push(sldCtrl)
+
+                currY += 48
+            }
+        }
+
+        if (hasCheckbox) {
+            ConfirmGui.SetFont("s12 cWhite", "Microsoft JhengHei")
+            chkSimplify := ConfirmGui.Add("Checkbox", "x20 y" currY " w420 Checked" (IsSimplifyDividers ? "1" : "0"), " 簡化進度條格數顯示")
+            chkSimplify.OnEvent("Click", UpdateTimeDisplay)
+        }
+
+        ; 按鈕尺寸與擺放
+        btnH := Integer((guiH - 50) / 2)
+        ConfirmGui.SetFont("s32", "Segoe UI Emoji")
+        btnConfirm := ConfirmGui.Add("Text", "x460 y20 w100 h" btnH " Center +0x200 +Border +Background020202", "⭕")
+        btnCancel := ConfirmGui.Add("Text", "x460 y" (20 + btnH + 10) " w100 h" btnH " Center +0x200 +Border +Background020202", "❌")
+    } else {
+        ConfirmGui.SetFont("s22 Bold cWhite", "Microsoft JhengHei")
+        ConfirmGui.Add("Text", "x20 y20 w420 Center +BackgroundTrans", "【 " funcName " 】")
+
+        ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
+        labelText := (timeStr == "∞") ? "預估總執行時間 (∞次)：" : "預估總執行時間："
+        ConfirmGui.Add("Text", "x20 y65 w420 Center +BackgroundTrans", labelText)
+
+        ConfirmGui.SetFont("s28 Bold cYellow")
+        ConfirmGui.Add("Text", "x20 y100 w420 Center +BackgroundTrans", timeStr)
+
+        ConfirmGui.SetFont("s32", "Segoe UI Emoji")
+        btnConfirm := ConfirmGui.Add("Text", "x460 y20 w100 h65 Center +0x200 +Border +Background020202", "⭕")
+        btnCancel := ConfirmGui.Add("Text", "x460 y100 w100 h65 Center +0x200 +Border +Background020202", "❌")
+    }
+
+    ConfirmGui.Show("X" GuiX " Y" GuiY " W580 H" guiH " NoActivate")
     WinSetTransparent(GuiOpacity, ConfirmGui.Hwnd)
     WinSetExStyle("+0x08000000", ConfirmGui.Hwnd)
 
@@ -261,6 +363,21 @@ ShowConfirmDialog(funcName, timeStr, totalCount := 0) {
         }
         Sleep(50)
     }
+    
+    if (ConfirmState.result) {
+        if (hasLimitSlider) {
+            %limitVarRef% := sliderCtrl.Value
+        }
+        if (hasExtraParams) {
+            for idx, item in extraParams {
+                %(item.varRef)% := extraSliderCtrls[idx].Value
+            }
+        }
+        if (chkSimplify) {
+            IsSimplifyDividers := chkSimplify.Value
+        }
+    }
+    
     ConfirmGui.Destroy()
     Sleep(200)
 
@@ -542,7 +659,7 @@ RunEnterSpamSequence() {
     }
 
     isEnterSpamRunning := true
-    UpdateUiRunningState(4)
+    UpdateUiRunningState("enterSpam")
 
     if WinExist(GameTitle) {
         WinActivate(GameTitle)
@@ -569,6 +686,61 @@ RunLButtonSequence() {
     }
     isSequenceRunning := true
 
+    CalculateTotalMs(vehicleDelay, brandDown, brandRight) {
+        static constantMs := 0
+        if (constantMs == 0) {
+            tempActions := [
+                ["Enter", 800], ["Backspace", 1000],
+                ["Enter", 600], ["Down", 450], ["Enter", 600], ["Down", 200, 4],
+                ["Enter", 600], ["Down", 450], ["Enter", 600], ["Down", 450],
+                ["Enter", 600], ["Enter", 800],
+                ["Esc", 2000], ["Down", 450], ["Enter", 1200], ["Down", 200, 7],
+                ["_Sleep", 400], ["Enter", 1500], ["Enter", 1200], ["Up", 450],
+                ["Enter", 1200], ["Up", 450], ["Enter", 1200], ["Up", 450],
+                ["Enter", 1200], ["Right", 450], ["Enter", 1200], ["Right", 450],
+                ["Enter", 1200], ["Esc", 1200], ["Esc", 1200], ["Up", 450]
+            ]
+            for item in tempActions {
+                if (item[1] == "_Sleep") {
+                    constantMs += item[2]
+                } else {
+                    repeat := (item.Length >= 3) ? item[3] : 1
+                    keyTime := (item[1] == "Backspace") ? 200 : 100
+                    constantMs += (keyTime + item[2]) * repeat
+                }
+            }
+        }
+        
+        brandDownMs := (brandDown > 0) ? (brandDown * 300 + 200) : 0
+        brandRightMs := (brandRight > 0) ? (brandRight * 300 + 200) : 0
+        vehicleMs := vehicleDelay * 1000
+        
+        return constantMs + brandDownMs + brandRightMs + vehicleMs
+    }
+    
+    recalcFn := (limit, vehicleDelay, brandDown, brandRight) => (
+        ms := CalculateTotalMs(vehicleDelay, brandDown, brandRight),
+        FormatTimeDuration(Ceil((limit * ms + (limit - 1) * 1500) / 1000))
+    )
+    
+    timeStr := recalcFn(LoopCountLimit, LoadVehicleDelay, BrandDownCount, BrandRightCount)
+    
+    extraParams := [
+        { varRef: &LoadVehicleDelay, name: "等待車輛載入時間 (秒)", range: "1-30" },
+        { varRef: &BrandDownCount, name: "點技能選廠牌向下次數", range: "0-11" },
+        { varRef: &BrandRightCount, name: "點技能選廠牌向右次數", range: "0-3" }
+    ]
+    
+    isConfirming := true
+    confirmed := ShowConfirmDialog("技能行程 ⚡", timeStr, &LoopCountLimit, recalcFn, extraParams)
+    isConfirming := false
+ 
+    if (!confirmed) {
+        StopGasAndClean()
+        return
+    }
+
+    ; 動態建立 actions 動作清單
     actions := [
         ["Enter", 800], ["Backspace", 1000]
     ]
@@ -595,28 +767,8 @@ RunLButtonSequence() {
         ["Enter", 1200], ["Esc", 1200], ["Esc", 1200], ["Up", 450]
     )
 
-    TotalMs := 0
-    for item in actions {
-        if (item[1] == "_Sleep" || item[1] == "_LoadVehicle") {
-            TotalMs += item[2]
-        } else {
-            repeat := (item.Length >= 3) ? item[3] : 1
-            keyTime := (item[1] == "Backspace") ? 200 : 100
-            TotalMs += (keyTime + item[2]) * repeat
-        }
-    }
-    
+    TotalMs := CalculateTotalMs(LoadVehicleDelay, BrandDownCount, BrandRightCount)
     sequenceTotalSec := Ceil((LoopCountLimit * TotalMs + (LoopCountLimit - 1) * 1500) / 1000)
-    timeStr := FormatTimeDuration(sequenceTotalSec)
-    
-    isConfirming := true
-    confirmed := ShowConfirmDialog("技能行程 ⚡", timeStr, LoopCountLimit)
-    isConfirming := false
-
-    if (!confirmed) {
-        StopGasAndClean()
-        return
-    }
 
     if WinExist(GameTitle) {
         WinActivate(GameTitle)
@@ -628,7 +780,7 @@ RunLButtonSequence() {
 
     DrawDividers(LoopCountLimit)
     sequenceStartTime := A_TickCount
-    UpdateUiRunningState(5)
+    UpdateUiRunningState("seq")
     SetTimer(UpdateLoopProgress, 100)
 
     SendKey(key, delay) {
@@ -724,8 +876,8 @@ WatchGameWindow() {
             
             isRunning := (isSequenceRunning || isNewSequenceRunning || isBuyCarRunning || isEnterSpamRunning || isGasOn)
             if (isRunning) {
-                runIdx := isBuyCarRunning ? 2 : (isNewSequenceRunning ? 3 : (isEnterSpamRunning ? 4 : (isSequenceRunning ? 5 : 6)))
-                UpdateUiRunningState(runIdx)
+                runName := isBuyCarRunning ? "buyCar" : (isNewSequenceRunning ? "newSeq" : (isEnterSpamRunning ? "enterSpam" : (isSequenceRunning ? "seq" : "gas")))
+                UpdateUiRunningState(runName)
             } else {
                 ResetUiToNormal()
             }
@@ -775,7 +927,7 @@ ToggleGas() {
     }
 
     isGasOn := true
-    UpdateUiRunningState(6)
+    UpdateUiRunningState("gas")
     SetTimer(InfiniteGasLoop, -10)
 }
 
@@ -803,18 +955,27 @@ RunNewSequence() {
     }
     isNewSequenceRunning := true
 
-    NewSequenceTotalMs := (WHoldDuration * 1000) + 13250
-    sequenceTotalSec := Ceil((NewSequenceLoopLimit * NewSequenceTotalMs) / 1000)
-    timeStr := FormatTimeDuration(sequenceTotalSec)
+    recalcFn := (limit, wHold) => (
+        dynamicTotalMs := (wHold * 1000) + 13250,
+        FormatTimeDuration(Ceil((limit * dynamicTotalMs) / 1000))
+    )
+    timeStr := recalcFn(NewSequenceLoopLimit, WHoldDuration)
     
+    extraParams := [
+        { varRef: &WHoldDuration, name: "按住油門前進時間 (秒)", range: "5-60" }
+    ]
+
     isConfirming := true
-    confirmed := ShowConfirmDialog("賺技能點 ⚔", timeStr, NewSequenceLoopLimit)
+    confirmed := ShowConfirmDialog("賺技能點 ⚔", timeStr, &NewSequenceLoopLimit, recalcFn, extraParams)
     isConfirming := false
 
     if (!confirmed) {
         StopGasAndClean()
         return
     }
+
+    NewSequenceTotalMs := (WHoldDuration * 1000) + 13250
+    sequenceTotalSec := Ceil((NewSequenceLoopLimit * NewSequenceTotalMs) / 1000)
 
     if WinExist(GameTitle) {
         WinActivate(GameTitle)
@@ -826,7 +987,7 @@ RunNewSequence() {
 
     DrawDividers(NewSequenceLoopLimit)
     sequenceStartTime := A_TickCount
-    UpdateUiRunningState(3)
+    UpdateUiRunningState("newSeq")
     SetTimer(UpdateNewLoopProgress, 100)
 
     SleepAndCheck(ms) {
@@ -916,17 +1077,19 @@ RunBuyCarSequence() {
     isBuyCarRunning := true
 
     BuyCarTotalMs := 4250
-    sequenceTotalSec := Ceil((BuyCarLoopLimit * BuyCarTotalMs) / 1000)
-    timeStr := FormatTimeDuration(sequenceTotalSec)
+    recalcFn := (limit) => FormatTimeDuration(Ceil((limit * BuyCarTotalMs) / 1000))
+    timeStr := recalcFn(BuyCarLoopLimit)
     
     isConfirming := true
-    confirmed := ShowConfirmDialog("買車行程 🚗", timeStr, BuyCarLoopLimit)
+    confirmed := ShowConfirmDialog("買車行程 🚗", timeStr, &BuyCarLoopLimit, recalcFn)
     isConfirming := false
 
     if (!confirmed) {
         StopGasAndClean()
         return
     }
+
+    sequenceTotalSec := Ceil((BuyCarLoopLimit * BuyCarTotalMs) / 1000)
 
     if WinExist(GameTitle) {
         WinActivate(GameTitle)
@@ -938,7 +1101,7 @@ RunBuyCarSequence() {
 
     DrawDividers(BuyCarLoopLimit)
     sequenceStartTime := A_TickCount
-    UpdateUiRunningState(2)
+    UpdateUiRunningState("buyCar")
     SetTimer(UpdateBuyCarLoopProgress, 100)
 
     SleepAndCheck(ms) {
@@ -1080,7 +1243,7 @@ CheckEveryHourly() {
 
             if (WinActive(GameTitle)) {
                 isGasOn := true
-                UpdateUiRunningState(5)
+                UpdateUiRunningState("gas")
                 SetTimer(InfiniteGasLoop, -10)
             } else {
                 ResetUiToNormal()
