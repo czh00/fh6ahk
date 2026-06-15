@@ -1,6 +1,6 @@
 ; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
-; 版本: 1.1.1
+; 版本: 1.2.0
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
 ;       採用橫向懸浮按鈕 UI，並完美支援 Xbox 手把與鍵盤的雙向控制及狀態回饋。
 ; =================================================================
@@ -34,7 +34,8 @@ global ConfirmState := { result: false, isWaiting: false }
 
 ; [行程循環次數設定]
 global LoopCountLimit := 25       ; 技能行程循環次數
-global NewSequenceLoopLimit := 50 ; 賺技能點行程循環次數
+global SkillPoints := 975         ; 技能行程技能點數限制 (975 / 39 = 25 次)
+global NewSequenceLoopLimit := 99 ; 賺技能點行程循環次數
 global BuyCarLoopLimit := 26      ; 買車行程循環次數
 
 ; [點技能選廠牌位置]
@@ -226,13 +227,22 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
     hasLimitSlider := IsSet(limitVarRef) && Type(limitVarRef) == "VarRef"
     hasExtraParams := IsObject(extraParams) && extraParams.Length > 0
 
-    local sliderCtrl := "", chkSimplify := "", timeTextCtrl := "", labelTextCtrl := ""
+    local sliderCtrl := "", chkSimplify := "", timeTextCtrl := ""
+    local labelTextPart1 := "", labelTextPart2 := "", labelTextPart3 := ""
+    local extraLabelCtrls := []  ; 儲存物件 { part1: ctrl, valPart: ctrl, part2: ctrl }
     local extraSliderCtrls := []
-    local extraLabelCtrls := []
     local isSkillSeq := (limitName == "LoopCountLimit")
     local gridCtrls := []
 
-    UpdateTimeDisplay(*) {
+    UpdateTimeDisplay(triggerCtrl := "", *) {
+        if (isSkillSeq && triggerCtrl) {
+            if (triggerCtrl.Hwnd == sliderCtrl.Hwnd) {
+                extraSliderCtrls[1].Value := Min(999, Max(39, sliderCtrl.Value * 39))
+            } else if (triggerCtrl.Hwnd == extraSliderCtrls[1].Hwnd) {
+                sliderCtrl.Value := Min(25, Max(1, Floor(extraSliderCtrls[1].Value / 39)))
+            }
+        }
+
         val := hasLimitSlider ? sliderCtrl.Value : 0
         isSimp := chkSimplify ? chkSimplify.Value : IsSimplifyDividers
         
@@ -245,7 +255,39 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
             for idx, item in extraParams {
                 ctrlVal := extraSliderCtrls[idx].Value
                 vals.Push(ctrlVal)
-                extraLabelCtrls[idx].Text := item.name " (" ctrlVal ")："
+                
+                ; 判斷原名稱包含的單位並改寫成「名稱 數值單位：」格式
+                unitStr := "次" ; 預設單位為「次」
+                if (InStr(item.name, "秒")) {
+                    unitStr := "秒"
+                } else if (InStr(item.name, "點數")) {
+                    unitStr := "點"
+                }
+                
+                ; 清理名稱中的括號文字以求整潔
+                cleanName := RegExReplace(item.name, "\s*\([^)]+\)")
+                
+                ; 特別修飾廠牌次數的名稱使其更自然流暢
+                if (InStr(cleanName, "向下次數")) {
+                    cleanName := "點技能選廠牌向下"
+                } else if (InStr(cleanName, "向右次數")) {
+                    cleanName := "點技能選廠牌向右"
+                }
+                
+                ; 更新分段控制項文字
+                extraLabelCtrls[idx].part1.Text := cleanName " "
+                extraLabelCtrls[idx].valPart.Text := ctrlVal
+                extraLabelCtrls[idx].part2.Text := unitStr "："
+
+                ; 動態設定數值控制項寬度（根據字數），避免 AHK 被初始寬度裁切
+                extraLabelCtrls[idx].valPart.Move(,, StrLen(ctrlVal) * 16 + 4)
+
+                ; 動態取得坐標進行排版接續
+                extraLabelCtrls[idx].part1.GetPos(&p1X, &p1Y, &p1W)
+                extraLabelCtrls[idx].valPart.Move(p1X + p1W)
+                
+                extraLabelCtrls[idx].valPart.GetPos(&pvX, &pvY, &pvW)
+                extraLabelCtrls[idx].part2.Move(pvX + pvW)
             }
         }
 
@@ -256,33 +298,59 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
             }
         }
         
-        if (hasLimitSlider && labelTextCtrl) {
+        if (hasLimitSlider && labelTextPart2) {
+            labelTextPart2.Text := val
             if (isSimp && val >= 20) {
                 groupCount := Ceil(val / 10)
-                labelTextCtrl.Text := "循環次數 (" val "次 / 簡化為" groupCount "格)："
+                labelTextPart3.Text := "次 / 簡化為" groupCount "格："
             } else {
-                labelTextCtrl.Text := "循環次數 (" val "次)："
+                labelTextCtrlPart3Text := "次："
+                labelTextPart3.Text := labelTextCtrlPart3Text
             }
+
+            ; 動態設定數值控制項寬度
+            labelTextPart2.Move(,, StrLen(val) * 16 + 4)
+
+            ; 動態重排
+            labelTextPart1.GetPos(&l1X, &l1Y, &l1W)
+            labelTextPart2.Move(l1X + l1W)
+            
+            labelTextPart2.GetPos(&l2X, &l2Y, &l2W)
+            labelTextPart3.Move(l2X + l2W)
         }
 
         if (isSkillSeq && gridCtrls.Length > 0) {
             ; 找到對應的 BrandDownCount 與 BrandRightCount 滑桿值
-            ; 第一個 extraParam 是 LoadVehicleDelay，第二個是 BrandDownCount，第三個是 BrandRightCount
+            ; 第一個 extraParam 是 SkillPoints，第二個是 BrandDownCount，第三個是 BrandRightCount
             currentDown := extraSliderCtrls[2].Value
             currentRight := extraSliderCtrls[3].Value
 
-            Loop 4 {
-                colIdx := A_Index - 1
-                Loop 12 {
-                    rowIdx := A_Index - 1
-                    ctrl := gridCtrls[colIdx + 1][rowIdx + 1]
-                    if (colIdx == currentRight && rowIdx == currentDown) {
-                        ctrl.Opt("+BackgroundYellow cBlack")
-                    } else {
-                        ctrl.Opt("+Background334455 cWhite")
+            ; 使用 static 變數記錄前一次亮起的格子坐標，避免每次拖動滑桿都重新繪製所有 48 個格子
+            static prevDown := -1
+            static prevRight := -1
+
+            if (currentDown != prevDown || currentRight != prevRight) {
+                Loop 4 {
+                    colIdx := A_Index - 1
+                    Loop 12 {
+                        rowIdx := A_Index - 1
+                        ctrl := gridCtrls[colIdx + 1][rowIdx + 1]
+                        
+                        isTarget := (colIdx == currentRight && rowIdx == currentDown)
+                        wasTarget := (colIdx == prevRight && rowIdx == prevDown)
+                        
+                        ; 只針對「即將變亮」或「即將變暗」的格子進行重繪，其他格子維持原樣不重繪以防閃爍
+                        if (isTarget) {
+                            ctrl.Opt("+BackgroundYellow cBlack")
+                            ctrl.Redraw()
+                        } else if (wasTarget) {
+                            ctrl.Opt("+Background334455 cWhite")
+                            ctrl.Redraw()
+                        }
                     }
-                    ctrl.Redraw()
                 }
+                prevDown := currentDown
+                prevRight := currentRight
             }
         }
     }
@@ -295,6 +363,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 rIdx := A_Index - 1
                 if (gridCtrls[cIdx + 1][rIdx + 1].Hwnd == ctrl.Hwnd) {
                     ; 更新對應滑桿的值
+                    ; extraSliderCtrls 中：第一個(1)是技能點數，第二個(2)是向下次數，第三個(3)是向右次數
                     extraSliderCtrls[2].Value := rIdx ; BrandDownCount
                     extraSliderCtrls[3].Value := cIdx ; BrandRightCount
                     ; 觸發重繪與計算
@@ -312,7 +381,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
     ; 視窗高度動態計算
     guiH := 180
     if (totalSliders > 0) {
-        guiH := 100 + totalSliders * 48 + (hasCheckbox ? 40 : 0)
+        guiH := 100 + totalSliders * 80 + (hasCheckbox ? 40 : 0)
     }
 
     if (totalSliders > 0) {
@@ -340,31 +409,62 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 sliderRange := "1-100"
             }
 
-            ConfirmGui.SetFont("s13 Bold cGray", "Microsoft JhengHei")
-            labelText := (IsSimplifyDividers && initialLimit >= 20) ? "循環次數 (" initialLimit "次 / 簡化為" Ceil(initialLimit / 10) "格)：" : "循環次數 (" initialLimit "次)："
-            labelTextCtrl := ConfirmGui.Add("Text", "x20 y" currY " w420 +BackgroundTrans", labelText)
+            ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
+            labelTextPart1 := ConfirmGui.Add("Text", "x20 y" currY " +BackgroundTrans", "循環 ")
+            
+            ConfirmGui.SetFont("s20 Bold cYellow", "Microsoft JhengHei")
+            labelTextPart2 := ConfirmGui.Add("Text", "x+0 y" (currY - 5) " +BackgroundTrans", initialLimit)
+            
+            ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
+            labelTextPart3Text := (IsSimplifyDividers && initialLimit >= 20) ? "次 / 簡化為" Ceil(initialLimit / 10) "格：" : "次："
+            labelTextPart3 := ConfirmGui.Add("Text", "x+0 y" currY " w350 +BackgroundTrans", labelTextPart3Text)
 
             ConfirmGui.SetFont("s10 cWhite")
-            sliderCtrl := ConfirmGui.Add("Slider", "x20 y" (currY + 20) " w420 Range" sliderRange " Tooltip", initialLimit)
+            sliderCtrl := ConfirmGui.Add("Slider", "x20 y" (currY + 30) " w420 h40 Range" sliderRange " Thick30 Tooltip AltSubmit", initialLimit)
             sliderCtrl.OnEvent("Change", UpdateTimeDisplay)
             
-            currY += 50
+            currY += 80
         }
 
         if (hasExtraParams) {
             for idx, item in extraParams {
                 initialVal := %(item.varRef)%
 
-                ConfirmGui.SetFont("s13 Bold cGray", "Microsoft JhengHei")
-                lblCtrl := ConfirmGui.Add("Text", "x20 y" currY " w420 +BackgroundTrans", item.name " (" initialVal ")：")
-                extraLabelCtrls.Push(lblCtrl)
+                ; 判斷原名稱包含的單位並改寫成「名稱 數值單位：」格式
+                unitStr :=  "次" ; 預設單位為「次」
+                if (InStr(item.name, "秒")) {
+                    unitStr := "秒"
+                } else if (InStr(item.name, "點數")) {
+                    unitStr := "點"
+                }
+                
+                ; 清理名稱中的括號文字以求整潔
+                cleanName := RegExReplace(item.name, "\s*\([^)]+\)")
+                
+                ; 特別修飾廠牌次數的名稱使其更自然流暢
+                if (InStr(cleanName, "向下次數")) {
+                    cleanName := "點技能選廠牌向下"
+                } else if (InStr(cleanName, "向右次數")) {
+                    cleanName := "點技能選廠牌向右"
+                }
+
+                ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
+                lblCtrlPart1 := ConfirmGui.Add("Text", "x20 y" currY " +BackgroundTrans",cleanName " ")
+                
+                ConfirmGui.SetFont("s20 Bold cYellow", "Microsoft JhengHei")
+                lblCtrlVal := ConfirmGui.Add("Text", "x+0 y" (currY - 5) " +BackgroundTrans",initialVal)
+                
+                ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
+                lblCtrlPart2 := ConfirmGui.Add("Text", "x+0 y" currY " w350 +BackgroundTrans",unitStr "：")
+
+                extraLabelCtrls.Push({ part1: lblCtrlPart1, valPart: lblCtrlVal, part2: lblCtrlPart2 })
 
                 ConfirmGui.SetFont("s10 cWhite")
-                sldCtrl := ConfirmGui.Add("Slider", "x20 y" (currY + 20) " w420 Range" item.range " Tooltip", initialVal)
+                sldCtrl := ConfirmGui.Add("Slider", "x20 y" (currY + 30) " w420 h40 Range" item.range " Thick30 Tooltip AltSubmit",initialVal)
                 sldCtrl.OnEvent("Change", UpdateTimeDisplay)
                 extraSliderCtrls.Push(sldCtrl)
 
-                currY += 50
+                currY += 80
             }
         }
 
@@ -374,7 +474,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
 
         if (hasCheckbox) {
             ConfirmGui.SetFont("s12 cWhite", "Microsoft JhengHei")
-            chkSimplify := ConfirmGui.Add("Checkbox", "x20 y" currY " w420 Checked" (IsSimplifyDividers ? "1" : "0"), " 簡化進度條格數顯示")
+            chkSimplify := ConfirmGui.Add("Checkbox", "x20 y" currY " w420 Checked" (IsSimplifyDividers ? "1" : "0"), " 簡化進度條格數（簡化後每十次畫一格避免太密集）")
             chkSimplify.OnEvent("Click", UpdateTimeDisplay)
             currY += 40
         }
@@ -769,54 +869,69 @@ RunEnterSpamSequence() {
 }
 
 RunLButtonSequence() {
-    global MyGui, ProgressText, isSequenceRunning, LoadVehicleDelay, BrandDownCount, BrandRightCount, LoopCountLimit, currentLoopItem, GuiX, GuiY, GuiH, loopStartTime, TotalMs, isConfirming
+    global MyGui, ProgressText, isSequenceRunning, BrandDownCount, BrandRightCount, LoopCountLimit, currentLoopItem, GuiX, GuiY, GuiH, loopStartTime, TotalMs, isConfirming, SkillPoints
     global sequenceStartTime, sequenceTotalSec
     if (isSequenceRunning) {
         return
     }
     isSequenceRunning := true
 
-    CalculateTotalMs(vehicleDelay, brandDown, brandRight) {
-        static constantMs := 0
-        if (constantMs == 0) {
-            tempActions := [
-                ["Enter", 800], ["Backspace", 1000],
-                ["Enter", 600], ["Down", 450], ["Enter", 600], ["Down", 200, 4],
-                ["Enter", 600], ["Down", 450], ["Enter", 600], ["Down", 450],
-                ["Enter", 600], ["Enter", 800],
-                ["Esc", 2000], ["Down", 450], ["Enter", 1200], ["Down", 200, 7],
-                ["_Sleep", 400], ["Enter", 1500], ["Enter", 1200], ["Up", 450],
-                ["Enter", 1200], ["Up", 450], ["Enter", 1200], ["Up", 450],
-                ["Enter", 1200], ["Right", 450], ["Enter", 1200], ["Right", 450],
-                ["Enter", 1200], ["Esc", 1200], ["Esc", 1200], ["Up", 450]
-            ]
-            for item in tempActions {
-                if (item[1] == "_Sleep") {
-                    constantMs += item[2]
-                } else {
-                    repeat := (item.Length >= 3) ? item[3] : 1
-                    keyTime := (item[1] == "Backspace") ? 200 : 100
-                    constantMs += (keyTime + item[2]) * repeat
-                }
+    BuildActionsList(brandDown, brandRight) {
+        local actionsList := [
+            ["Up", 450], ["Up", 450], ["Up", 450], ["Down", 450], ["Enter", 600], ["Down", 450], ["Enter", 600],
+            ["Backspace", 1000]
+        ]
+        if (brandDown > 0) {
+            Loop brandDown {
+                actionsList.Push(["Down", 200])
+            }
+            actionsList.Push(["_Sleep", 200])
+        }
+        if (brandRight > 0) {
+            Loop brandRight {
+                actionsList.Push(["Right", 200])
+            }
+            actionsList.Push(["_Sleep", 200])
+        }
+        actionsList.Push(
+            ["Enter", 600],
+            ["Down", 450], ["Enter", 600], ["Down", 200, 5], ["Enter", 600],
+            ["Down", 450], ["Enter", 600], ["Down", 450], ["Enter", 600], ["Down", 450], ["Enter", 600],
+            ["_Sleep", 3000],
+            ["Esc", 1200], ["Esc", 1200], ["Right", 600],
+            ["Enter", 600], ["Down", 200, 7],
+            ["_Sleep", 400], ["Enter", 1500], ["Enter", 1200], ["Up", 450],
+            ["Enter", 1200], ["Up", 450], ["Enter", 1200], ["Up", 450],
+            ["Enter", 1200], ["Right", 450], ["Enter", 1200], ["Right", 450],
+            ["Enter", 1200], ["Esc", 1200], ["Esc", 1200], ["Left", 450], ["Up", 450]
+        )
+        return actionsList
+    }
+
+    CalculateTotalMs(brandDown, brandRight) {
+        tempActions := BuildActionsList(brandDown, brandRight)
+        totalMs := 0
+        for item in tempActions {
+            if (item[1] == "_Sleep") {
+                totalMs += item[2]
+            } else {
+                repeat := (item.Length >= 3) ? item[3] : 1
+                keyTime := (item[1] == "Backspace") ? 200 : 100
+                totalMs += (keyTime + item[2]) * repeat
             }
         }
-        
-        brandDownMs := (brandDown > 0) ? (brandDown * 300 + 200) : 0
-        brandRightMs := (brandRight > 0) ? (brandRight * 300 + 200) : 0
-        vehicleMs := vehicleDelay * 1000
-        
-        return constantMs + brandDownMs + brandRightMs + vehicleMs
+        return totalMs
     }
     
-    recalcFn := (limit, vehicleDelay, brandDown, brandRight) => (
-        ms := CalculateTotalMs(vehicleDelay, brandDown, brandRight),
-        FormatTimeDuration(Ceil((limit * ms + (limit - 1) * 1500) / 1000))
+    recalcFn := (limit, skillPts, brandDown, brandRight) => (
+        ms := CalculateTotalMs(brandDown, brandRight),
+        FormatTimeDuration(Ceil((limit * ms + Max(0, limit - 1) * 1500) / 1000))
     )
     
-    timeStr := recalcFn(LoopCountLimit, LoadVehicleDelay, BrandDownCount, BrandRightCount)
+    timeStr := recalcFn(LoopCountLimit, SkillPoints, BrandDownCount, BrandRightCount)
     
     extraParams := [
-        { varRef: &LoadVehicleDelay, name: "等待車輛載入時間 (秒)", range: "1-30" },
+        { varRef: &SkillPoints, name: "技能點數", range: "39-999" },
         { varRef: &BrandDownCount, name: "點技能選廠牌向下次數", range: "0-11" },
         { varRef: &BrandRightCount, name: "點技能選廠牌向右次數", range: "0-3" }
     ]
@@ -830,35 +945,18 @@ RunLButtonSequence() {
         return
     }
 
-    ; 動態建立 actions 動作清單
-    actions := [
-        ["Enter", 800], ["Backspace", 1000]
-    ]
-    if (BrandDownCount > 0) {
-        Loop BrandDownCount {
-            actions.Push(["Down", 200])
-        }
-        actions.Push(["_Sleep", 200])
+    ; 計算實際的循環次數
+    LoopCountLimit := Floor(SkillPoints / 39)
+    if (LoopCountLimit < 1) {
+        LoopCountLimit := 1
     }
-    if (BrandRightCount > 0) {
-        Loop BrandRightCount {
-            actions.Push(["Right", 200])
-        }
-        actions.Push(["_Sleep", 200])
-    }
-    actions.Push(
-        ["Enter", 600], ["Down", 450], ["Enter", 600], ["Down", 200, 4],
-        ["Enter", 600], ["Down", 450], ["Enter", 600], ["Down", 450],
-        ["Enter", 600], ["Enter", 800], ["_LoadVehicle", LoadVehicleDelay * 1000],
-        ["Esc", 2000], ["Down", 450], ["Enter", 1200], ["Down", 200, 7],
-        ["_Sleep", 400], ["Enter", 1500], ["Enter", 1200], ["Up", 450],
-        ["Enter", 1200], ["Up", 450], ["Enter", 1200], ["Up", 450],
-        ["Enter", 1200], ["Right", 450], ["Enter", 1200], ["Right", 450],
-        ["Enter", 1200], ["Esc", 1200], ["Esc", 1200], ["Up", 450]
-    )
 
-    TotalMs := CalculateTotalMs(LoadVehicleDelay, BrandDownCount, BrandRightCount)
+    ; 動態建立 actions 動作清單
+    actions := BuildActionsList(BrandDownCount, BrandRightCount)
+
+    TotalMs := CalculateTotalMs(BrandDownCount, BrandRightCount)
     sequenceTotalSec := Ceil((LoopCountLimit * TotalMs + (LoopCountLimit - 1) * 1500) / 1000)
+
 
     if WinExist(GameTitle) {
         WinActivate(GameTitle)
@@ -1052,7 +1150,7 @@ RunNewSequence() {
     timeStr := recalcFn(NewSequenceLoopLimit, WHoldDuration)
     
     extraParams := [
-        { varRef: &WHoldDuration, name: "按住油門前進時間 (秒)", range: "5-60" }
+        { varRef: &WHoldDuration, name: "按住油門前進(秒)", range: "5-60" }
     ]
 
     isConfirming := true
@@ -1365,8 +1463,8 @@ StopGasAndClean() {
         ResetUiToNormal()
     }
     ForceReleaseW_Hardware()
-    Send("{x Up}{Space Up}{Down Up}{Enter Up}")
-    SendInput("{x Up}{Space Up}{Down Up}{Enter Up}")
+    ; Send("{x Up}{Space Up}{Down Up}{Enter Up}")
+    ; SendInput("{x Up}{Space Up}{Down Up}{Enter Up}")
 }
 
 UpdateLoopProgress() {
