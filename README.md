@@ -116,9 +116,10 @@
   
   <img width="1920" height="1200" alt="FB_IMG_1779753256078" src="https://github.com/user-attachments/assets/0554eb57-3b52-4c14-9f22-83ada76352a6" />
 
-* **啟動步驟**：停留在下方所示的車庫車輛列表畫面，點擊 **⚡** 圖示，腳本便會自動選取下一台車、點滿技能、刪除已點過技能的車輛，並自動循環進行。
+* **啟動步驟**：進入購買新車與二手車，停留在下方所示畫面，點擊 **⚡** 圖示，腳本便會刪除已點過技能的車輛、自動選取下一台車、點好所需技能，並自動循環進行。
 
-<img width="1920" height="1200" alt="Forza Horizon 6 26_6_8_週一 上午 07_16_10" src="https://github.com/user-attachments/assets/4ec916f6-ef62-458a-8225-4d2e0503bdd4" />
+<img width="1602" height="875" alt="Quicker_20260615_210139" src="https://github.com/user-attachments/assets/c37decb6-fad2-44da-8445-04560012cae6" />
+
 
 ---
 
