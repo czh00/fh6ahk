@@ -41,6 +41,8 @@ global RivalLoopLimit := 10       ; 勁敵刷錢行程循環次數
 global RivalThrottleSec := 420    ; 勁敵刷錢按住油門時間（秒）
 global RivalLoadSec := 10          ; 勁敵刷錢等待載入時間（秒）
 global RivalTransitionSec := 30   ; 勁敵刷錢等待過場時間（秒）
+global RivalEndHour := 0          ; 勁敵刷錢預計結束時間（時）
+global RivalEndMin := 0           ; 勁敵刷錢預計結束時間（分）
 
 ; [點技能選廠牌位置]
 global BrandDownCount := 10
@@ -252,6 +254,41 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
             }
         }
 
+        if (limitName == "RivalLoopLimit" && triggerCtrl) {
+            ; 單次循環時間 (秒) = 門檻 + 載入*3 + 過場*2 + 39.25秒
+            singleLoopSec := extraSliderCtrls[1].Value + (extraSliderCtrls[2].Value * 3) + (extraSliderCtrls[3].Value * 2) + 39.25
+            
+            if (triggerCtrl.Hwnd == extraSliderCtrls[4].Hwnd || triggerCtrl.Hwnd == extraSliderCtrls[5].Hwnd) {
+                ; 拖動結束時間 -> 更新循環次數
+                targetHour := extraSliderCtrls[4].Value
+                targetMin := extraSliderCtrls[5].Value
+                
+                currentTotalMin := A_Hour * 60 + A_Min
+                targetTotalMin := targetHour * 60 + targetMin
+                
+                diffMin := targetTotalMin - currentTotalMin
+                if (diffMin <= 0) {
+                    diffMin += 1440
+                }
+                
+                limitVal := Floor((diffMin * 60) / singleLoopSec)
+                if (limitVal < 1) {
+                    limitVal := 1
+                } else if (limitVal > 100) {
+                    limitVal := 100
+                }
+                sliderCtrl.Value := limitVal
+            } else {
+                ; 拖動循環次數或其他參數 -> 更新結束時間 (小時與分鐘)
+                totalSec := sliderCtrl.Value * singleLoopSec
+                totalMin := Ceil(totalSec / 60)
+                currentTotalMin := A_Hour * 60 + A_Min
+                endTotalMin := Mod(currentTotalMin + totalMin, 1440)
+                extraSliderCtrls[4].Value := Floor(endTotalMin / 60)
+                extraSliderCtrls[5].Value := Mod(endTotalMin, 60)
+            }
+        }
+
         val := hasLimitSlider ? sliderCtrl.Value : 0
         isSimp := chkSimplify ? chkSimplify.Value : IsSimplifyDividers
         
@@ -271,6 +308,8 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                     mins := Floor(ctrlVal / 60)
                     secs := Mod(ctrlVal, 60)
                     valStr := mins "分" Format("{:02d}", secs) "秒"
+                } else if (InStr(item.name, "結束時間")) {
+                    valStr := Format("{:02d}", ctrlVal)
                 }
                 if (oldValStr != valStr) {
                     ; 僅更新變動的數字本身
@@ -450,6 +489,10 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                     unitStr := "秒"
                 } else if (InStr(item.name, "點數")) {
                     unitStr := "點"
+                } else if (InStr(item.name, "時")) {
+                    unitStr := "時"
+                } else if (InStr(item.name, "分")) {
+                    unitStr := "分"
                 }
                 
                 ; 清理名稱中的括號文字以求整潔
@@ -467,6 +510,8 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                     mins := Floor(initialVal / 60)
                     secs := Mod(initialVal, 60)
                     valStr := mins "分" Format("{:02d}", secs) "秒"
+                } else if (InStr(item.name, "結束時間")) {
+                    valStr := Format("{:02d}", initialVal)
                 }
                 ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
                 lblCtrlPart1 := ConfirmGui.Add("Text", "x20 y" currY " +BackgroundTrans",cleanName " ")
@@ -1665,23 +1710,33 @@ ToggleRivalSequence() {
 }
 
 RunRivalSequence() {
-    global isRivalRunning, GameTitle, MyGui, RivalThrottleSec, RivalLoopLimit, currentRivalLoopItem, rivalLoopStartTime, RivalTotalMs, GuiX, GuiY, GuiH, isConfirming, RivalLoadSec, RivalTransitionSec
+    global isRivalRunning, GameTitle, MyGui, RivalThrottleSec, RivalLoopLimit, currentRivalLoopItem, rivalLoopStartTime, RivalTotalMs, GuiX, GuiY, GuiH, isConfirming, RivalLoadSec, RivalTransitionSec, RivalEndHour, RivalEndMin
     global sequenceStartTime, sequenceTotalSec
     if (isRivalRunning) {
         return
     }
     isRivalRunning := true
 
-    recalcFn := (limit, throttleSec, loadSec, transitionSec) => (
+    ; 初始化預計結束時間
+    singleLoopSec := RivalThrottleSec + (RivalLoadSec * 3) + (RivalTransitionSec * 2) + 39.25
+    totalMin := Ceil((RivalLoopLimit * singleLoopSec) / 60)
+    currentTotalMin := A_Hour * 60 + A_Min
+    endTotalMin := Mod(currentTotalMin + totalMin, 1440)
+    RivalEndHour := Floor(endTotalMin / 60)
+    RivalEndMin := Mod(endTotalMin, 60)
+
+    recalcFn := (limit, throttleSec, loadSec, transitionSec, endHour := 0, endMin := 0) => (
         dynamicTotalMs := (throttleSec * 1000) + (loadSec * 3 * 1000) + (transitionSec * 2 * 1000) + 39250,
         FormatTimeDuration(Ceil((limit * dynamicTotalMs) / 1000))
     )
-    timeStr := recalcFn(RivalLoopLimit, RivalThrottleSec, RivalLoadSec, RivalTransitionSec)
+    timeStr := recalcFn(RivalLoopLimit, RivalThrottleSec, RivalLoadSec, RivalTransitionSec, RivalEndHour, RivalEndMin)
     
     extraParams := [
         { varRef: &RivalThrottleSec, name: "油門時間(分:秒)", range: "10-1800" },
         { varRef: &RivalLoadSec, name: "等待載入(秒)", range: "1-30" },
-        { varRef: &RivalTransitionSec, name: "等待過場(秒)", range: "10-120" }
+        { varRef: &RivalTransitionSec, name: "等待過場(秒)", range: "10-120" },
+        { varRef: &RivalEndHour, name: "結束時間(時)", range: "0-23" },
+        { varRef: &RivalEndMin, name: "結束時間(分)", range: "0-59" }
     ]
 
     isConfirming := true
