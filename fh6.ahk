@@ -1220,6 +1220,33 @@ RunNewSequence() {
         return true
     }
 
+    CountdownSleep(totalMs, prefix) {
+        global isNewSequenceRunning, GameTitle, MyGui
+        startTime := A_TickCount
+        while (isNewSequenceRunning && (A_TickCount - startTime < totalMs)) {
+            if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
+                return false
+            }
+            elapsedMs := A_TickCount - startTime
+            remainingMs := totalMs - elapsedMs
+            remainingSec := Ceil(remainingMs / 1000)
+            if (remainingSec < 0) {
+                remainingSec := 0
+            }
+            timeDisplay := ""
+            if (remainingSec >= 60) {
+                mins := Floor(remainingSec / 60)
+                secs := Mod(remainingSec, 60)
+                timeDisplay := mins "分" Format("{:02d}", secs) "秒"
+            } else {
+                timeDisplay := remainingSec "秒"
+            }
+            ShowTip(prefix " (倒數 " timeDisplay ")")
+            Sleep(100)
+        }
+        return isNewSequenceRunning
+    }
+
     currentNewLoopItem := 0
     Loop NewSequenceLoopLimit {
         if (!isNewSequenceRunning) {
@@ -1241,20 +1268,12 @@ RunNewSequence() {
             break
         }
 
-        ShowTip("2. 按住 W 前進 (" WHoldDuration "秒)")
         SendInput("{w Down}")
-        wStartTime := A_TickCount
-        wDurationMs := WHoldDuration * 1000
-        while (isNewSequenceRunning && (A_TickCount - wStartTime < wDurationMs)) {
-            if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
-                break
-            }
-            Sleep(100)
-        }
+        wSuccess := CountdownSleep(WHoldDuration * 1000, "2. 按住 W 前進")
         ShowTip("釋放 W 鍵")
         ForceReleaseW_Hardware()
         SendInput("{w Up}")
-        if (!isNewSequenceRunning) {
+        if (!wSuccess) {
             break
         }
         if (!SleepAndCheck(1000)) {
@@ -1277,8 +1296,7 @@ RunNewSequence() {
             break
         }
 
-        ShowTip("5. 等待8秒")
-        if (!SleepAndCheck(8000)) {
+        if (!CountdownSleep(8000, "5. 等待8秒")) {
             break
         }
     }
