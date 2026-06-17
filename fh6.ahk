@@ -1962,26 +1962,35 @@ RunRivalSequence() {
             break
         }
 
-        ShowTip("27. 送出 Enter (1/2)")
+        ShowTip("27. 送出 Enter (1/3)")
         if (!SendKey("Enter")) {
             break
         }
-        ShowTip("28. 送出 Enter (2/2)")
+        ShowTip("27. 送出 Enter (2/2)")
         if (!SendKey("Enter")) {
             break
         }
 
-        if (!CountdownSleep(RivalTransitionSec * 1000, "29. 等待過場")) {
+        if (!CountdownSleep(RivalLoadSec * 1000, "28. 等待載入")) {
             break
         }
 
-        ShowTip("30. 送出 Esc")
+        ShowTip("29. 送出 Enter")
+        if (!SendKey("Enter")) {
+            break
+        }
+
+        if (!CountdownSleep(RivalTransitionSec * 1000, "30. 等待過場")) {
+            break
+        }
+
+        ShowTip("31. 送出 Esc")
         if (!SendKey("Esc")) {
             break
         }
 
         randomWaitSec := Random(10, 30)
-        if (!CountdownSleep(randomWaitSec * 1000, "31. 等待 " randomWaitSec " 秒")) {
+        if (!CountdownSleep(randomWaitSec * 1000, "32. 等待 " randomWaitSec " 秒")) {
             break
         }
     }
