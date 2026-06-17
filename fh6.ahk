@@ -489,9 +489,9 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                     unitStr := "秒"
                 } else if (InStr(item.name, "點數")) {
                     unitStr := "點"
-                } else if (InStr(item.name, "時")) {
+                } else if (InStr(item.name, "(時)")) {
                     unitStr := "時"
-                } else if (InStr(item.name, "分")) {
+                } else if (InStr(item.name, "(分)")) {
                     unitStr := "分"
                 }
                 
