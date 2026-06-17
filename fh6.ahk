@@ -892,9 +892,9 @@ RunEnterSpamSequence() {
             break
         }
         Send("{Enter Down}")
-        Sleep(60)
+        Sleep(100)
         Send("{Enter Up}")
-        Sleep(60)
+        Sleep(1000)
     }
 }
 
