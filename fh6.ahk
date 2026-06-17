@@ -1472,7 +1472,7 @@ CheckEveryHourly() {
 }
 
 StopGasAndClean() {
-    global MyGui, isGasOn, isSequenceRunning, isEnterSpamRunning, isNewSequenceRunning, isBuyCarRunning, ProgressText, ProgressBar, GuiX, GuiY, GuiH, currentStepText
+    global MyGui, isGasOn, isSequenceRunning, isEnterSpamRunning, isNewSequenceRunning, isBuyCarRunning, ProgressText, ProgressBar, GuiX, GuiY, GuiH, currentStepText, isRivalRunning
 
     isGasOn := false
     isSequenceRunning := false
