@@ -383,6 +383,8 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
         }
         if (chkAutoLoop) {
             AutoLoopEnabled := chkAutoLoop.Value
+            loopCount := Floor((sliderCtrl.Value * 10) / globalSkillCost)
+            chkAutoLoop.Text := " 自動雙循環（賺點數行程後自動接點技能行程 " loopCount " 次）"
         }
 
         if (isSkillSeq && triggerCtrl) {
@@ -727,6 +729,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
         btnConfirm := ConfirmGui.Add("Text", "x460 y25 w100 h60 Center +0x200 +Border +Background020202", "⭕")
         btnCancel := ConfirmGui.Add("Text", "x460 y95 w100 h60 Center +0x200 +Border +Background020202", "❌")
     }
+    UpdateTimeDisplay()
 
     ConfirmGui.Show("X" GuiX " Y" GuiY " W580 H" guiH " NoActivate")
     WinSetTransparent(GuiOpacity, ConfirmGui.Hwnd)
