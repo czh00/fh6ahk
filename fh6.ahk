@@ -1,4 +1,4 @@
-; =================================================================
+﻿; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
 ; 版本: 1.4.0
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
@@ -1250,60 +1250,60 @@ RunLButtonSequence(bypassConfirm := false) {
     }
     restLoopMs += navMs + endMs
 
-    CalculateTotalMs(path := "") {
+        CalculateTotalMs(path := "") {
         global SkillBuyCarEnabled
         if (path == "") {
             path := globalSkillPath
         }
         
         local totalMs := 0
-        ; 前置時間 (當不買車時，只加前 6 步的時間)
         for idx, action in preActions {
             if (!SkillBuyCarEnabled && idx > 6) {
                 break
             }
             totalMs += CalculateActionMs(action)
         }
-        ; 買車循環時間
         if (SkillBuyCarEnabled) {
             totalMs += oneBuyLoopMs * LoopCountLimit
-            
-            ; 買車結束的 esc*3 + Right + Up (僅在有買車時執行)
-            totalMs += (100 + 1200) * 3 + (100 + 600) + (100 + 600)
+            for action in buyCarEndActions {
+                totalMs += CalculateActionMs(action)
+            }
         }
         
-        ; 動態計算點技能循環時間
-        local navKeys := GenerateKeySequence(path)
-        local navMs := 0
-        for k in navKeys {
-            navMs += (100 + 1200) * 2  ; 方向鍵一次 + Enter 一次
-        }
-        local endMs := (100 + 1200) * 2 + (100 + 450) ; 點技能結束的兩次 Esc 與一次 Left
+        local navKeysPath := GenerateKeySequence(path)
+        local singleNavMs := (navPress + navWait + enterPress + enterWait) * navKeysPath.Length
         
-        ; 算第一圈 (loopIdx = 1)
+        local localEndMs := 0
+        for action in skillEndActions {
+            localEndMs += CalculateActionMs(action)
+        }
+        
         local tmpFirstMs := 0
         for action in GetSkillStaticActions(1) {
             tmpFirstMs += CalculateActionMs(action)
         }
-        tmpFirstMs += navMs + endMs
+        tmpFirstMs += singleNavMs + localEndMs
         
-        ; 算第二圈以後 (loopIdx = 2)
         local tmpRestMs := 0
         for action in GetSkillStaticActions(2) {
             tmpRestMs += CalculateActionMs(action)
         }
-        tmpRestMs += navMs + endMs
+        tmpRestMs += singleNavMs + localEndMs
         
         totalMs += tmpFirstMs + (tmpRestMs * (LoopCountLimit - 1))
         
-        ; 點技能第二次以後的循環，開頭需要按兩次 Up 對接 (每次約 (100+500)*2 = 1200ms)
         if (LoopCountLimit > 1) {
-            totalMs += (LoopCountLimit - 1) * (100 + 500) * 2
+            local transitMs := 0
+            for action in skillTransitActions {
+                transitMs += CalculateActionMs(action)
+            }
+            totalMs += (LoopCountLimit - 1) * transitMs
         }
         
-        ; 最後一次結尾按三次 Esc
-        totalMs += (100 + 1200) * 3
-
+        for action in finalEndActions {
+            totalMs += CalculateActionMs(action)
+        }
+        
         return totalMs
     }
 
@@ -1484,25 +1484,30 @@ RunLButtonSequence(bypassConfirm := false) {
         }
     }
 
-    ; --- 3. 買車完畢後按 esc*3 與 Right 還有 Up ---
+        ; --- 3. 買車完畢後按 esc*3 與 Right 還有 Up ---
     if (!loopBreak && SkillBuyCarEnabled && LoopCountLimit > 0) {
-        Loop 3 {
-            ShowTip("買車完畢: 送出 Esc (" A_Index "/3)")
-            if (!SendKey("Esc", 100, 1200, &isSequenceRunning)) {
-                loopBreak := true
-                break
-            }
-        }
-        if (!loopBreak) {
-            ShowTip("買車完畢: 送出 ⮕")
-            if (!SendKey("Right", 100, 600, &isSequenceRunning)) {
-                loopBreak := true
-            }
-        }
-        if (!loopBreak) {
-            ShowTip("買車完畢: 送出 ⬆")
-            if (!SendKey("Up", 100, 600, &isSequenceRunning)) {
-                loopBreak := true
+        for action in buyCarEndActions {
+            repeat := action.HasOwnProp("repeat") ? action.repeat : 1
+            if (repeat > 1) {
+                repeatSuccess := true
+                Loop repeat {
+                    tipText := Format(action.tip, A_Index)
+                    ShowTip(tipText)
+                    if (!SendKey(action.key, action.press, action.wait, &isSequenceRunning)) {
+                        repeatSuccess := false
+                        break
+                    }
+                }
+                if (!repeatSuccess) {
+                    loopBreak := true
+                    break
+                }
+            } else {
+                ShowTip(action.tip)
+                if (!SendKey(action.key, action.press, action.wait, &isSequenceRunning)) {
+                    loopBreak := true
+                    break
+                }
             }
         }
     }
@@ -1523,16 +1528,24 @@ RunLButtonSequence(bypassConfirm := false) {
             
             ; 僅在第二次以後的點技能循環中，開頭才按兩次 Up 對接畫面
             if (A_Index > 1) {
-                ShowTip("技能循環對接: 送出 ⬆ (1/2)")
-                if (!SendKey("Up", 100, 500, &isSequenceRunning)) {
-                    loopBreak := true
-                    break
+                for action in skillTransitActions {
+                    repeat := action.HasOwnProp("repeat") ? action.repeat : 1
+                    repeatSuccess := true
+                    Loop repeat {
+                        tipText := Format(action.tip, A_Index)
+                        ShowTip(tipText)
+                        if (!SendKey(action.key, action.press, action.wait, &isSequenceRunning)) {
+                            repeatSuccess := false
+                            break
+                        }
+                    }
+                    if (!repeatSuccess) {
+                        loopBreak := true
+                        break
+                    }
                 }
-                ShowTip("技能循環對接: 送出 ⬆ (2/2)")
-                if (!SendKey("Up", 100, 500, &isSequenceRunning)) {
-                    loopBreak := true
+                if (loopBreak)
                     break
-                }
             }
 
             for action in GetSkillStaticActions(A_Index) {
@@ -1581,47 +1594,35 @@ RunLButtonSequence(bypassConfirm := false) {
 
             ; 執行路徑導航
             navKeys := GenerateKeySequence()
-            stepIdx := 25
-            
             pathBreak := false
             for key in navKeys {
                 ShowTip("技能導航: 送出 " key)
-                if (!SendKey(key, 100, 1200, &isSequenceRunning)) {
+                if (!SendKey(key, navPress, navWait, &isSequenceRunning)) {
                     pathBreak := true
                     break
                 }
-                stepIdx++
                 
-                ShowTip("技能導航: 送出 ↵")
-                if (!SendKey("Enter", 100, 1200, &isSequenceRunning)) {
+                ShowTip("技能導航: 送出 Enter")
+                if (!SendKey("Enter", enterPress, enterWait, &isSequenceRunning)) {
                     pathBreak := true
                     break
                 }
-                stepIdx++
             }
             if (pathBreak) {
                 loopBreak := true
                 break
             }
 
-            ; 結尾兩次 Esc 退出與 Left 移動 (依路徑點完技能後按兩次 Esc 然後左)
-            ShowTip("技能結尾: 送出 Esc (1/2)")
-            if (!SendKey("Esc", 100, 1200, &isSequenceRunning)) {
-                loopBreak := true
-                break
+            ; 結尾兩次 Esc 退出與 Left 移動
+            for action in skillEndActions {
+                ShowTip(action.tip)
+                if (!SendKey(action.key, action.press, action.wait, &isSequenceRunning)) {
+                    loopBreak := true
+                    break
+                }
             }
-            
-            ShowTip("技能結尾: 送出 Esc (2/2)")
-            if (!SendKey("Esc", 100, 1200, &isSequenceRunning)) {
-                loopBreak := true
+            if (loopBreak)
                 break
-            }
-
-            ShowTip("技能結尾: 送出 ⬅")
-            if (!SendKey("Left", 100, 450, &isSequenceRunning)) {
-                loopBreak := true
-                break
-            }
 
             if (isSequenceRunning && A_Index < LoopCountLimit) {
                 if (!SleepAndCheck(1500)) {
@@ -1634,14 +1635,17 @@ RunLButtonSequence(bypassConfirm := false) {
 
     ; --- 5. 最後一次結尾按三次 esc ---
     if (isSequenceRunning) {
-        Loop 3 {
-            ShowTip("全部行程結束: 送出 Esc (" A_Index "/3)")
-            if (!SendKey("Esc", 100, 1200, &isSequenceRunning)) {
-                break
+        for action in finalEndActions {
+            repeat := action.HasOwnProp("repeat") ? action.repeat : 1
+            Loop repeat {
+                tipText := Format(action.tip, A_Index)
+                ShowTip(tipText)
+                if (!SendKey(action.key, action.press, action.wait, &isSequenceRunning)) {
+                    break
+                }
             }
         }
     }
-
     if (!loopBreak) {
         if (AutoLoopEnabled) {
             ; 行程全部結束後等待一分鐘 (60 秒)
