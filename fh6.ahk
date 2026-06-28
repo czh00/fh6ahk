@@ -1109,6 +1109,35 @@ RunLButtonSequence(bypassConfirm := false) {
     }
     isSequenceRunning := true
 
+    buyCarEndActions := [
+        ; --- 買車完畢後的收尾步驟 ---
+        { key: "Esc", press: 100, wait: 1200, repeat: 3, tip: "買車完畢: 送出 Esc ({1}/3)" },
+        { key: "Right", press: 100, wait: 600, tip: "買車完畢: 送出 ⮕" },
+        { key: "Up", press: 100, wait: 600, tip: "買車完畢: 送出 ⬆" }
+    ]
+
+    skillTransitActions := [
+        ; --- 技能循環對接步驟 ---
+        { key: "Up", press: 100, wait: 500, repeat: 2, tip: "技能循環對接: 送出 ⬆ ({1}/2)" }
+    ]
+
+    skillEndActions := [
+        ; --- 技能行程結尾步驟 ---
+        { key: "Esc", press: 100, wait: 1200, tip: "技能結尾: 送出 Esc (1/2)" },
+        { key: "Esc", press: 100, wait: 1200, tip: "技能結尾: 送出 Esc (2/2)" },
+        { key: "Left", press: 100, wait: 450, tip: "技能結尾: 送出 ⬅" }
+    ]
+
+    finalEndActions := [
+        ; --- 技能行程最後一次結束的步驟 ---
+        { key: "Esc", press: 100, wait: 1200, repeat: 3, tip: "全部行程結束: 送出 Esc ({1}/3)" }
+    ]
+
+    navPress := 100
+    navWait := 1200
+    enterPress := 100
+    enterWait := 1200
+
     preActions := [
         ; --- 行程開始前按 ---
         { key: "esc", press: 250, wait: 1000, tip: "1. 送出 Esc" },
@@ -1250,7 +1279,7 @@ RunLButtonSequence(bypassConfirm := false) {
     }
     restLoopMs += navMs + endMs
 
-        CalculateTotalMs(path := "") {
+            CalculateTotalMs(path := "") {
         global SkillBuyCarEnabled
         if (path == "") {
             path := globalSkillPath
@@ -1484,7 +1513,7 @@ RunLButtonSequence(bypassConfirm := false) {
         }
     }
 
-        ; --- 3. 買車完畢後按 esc*3 與 Right 還有 Up ---
+            ; --- 3. 買車完畢後按 esc*3 與 Right 還有 Up ---
     if (!loopBreak && SkillBuyCarEnabled && LoopCountLimit > 0) {
         for action in buyCarEndActions {
             repeat := action.HasOwnProp("repeat") ? action.repeat : 1
