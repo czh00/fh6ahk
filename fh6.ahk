@@ -1,4 +1,4 @@
-; =================================================================
+﻿; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
 ; 版本: 1.4.0
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
@@ -2559,57 +2559,9 @@ UpdateRivalLoopProgress() {
     ShowTip(currentStepText)
 }
 
-UpdateNewLoopProgress() {
-    global isNewSequenceRunning, newLoopStartTime, NewSequenceTotalMs, ProgressBar, ProgressText, currentStepText, currentNewLoopItem, NewSequenceLoopLimit
-    static lastPercent := -1
 
-    if (!isNewSequenceRunning) {
-        SetTimer(UpdateNewLoopProgress, 0)
-        lastPercent := -1
-        return
-    }
 
-    loopIndex := (currentNewLoopItem > 0) ? currentNewLoopItem : 1
-    elapsedInCurrent := Min(A_TickCount - newLoopStartTime, NewSequenceTotalMs)
-    loopRatio := elapsedInCurrent / NewSequenceTotalMs
-    segmentSize := 10000 / NewSequenceLoopLimit
-    basePercent := (loopIndex - 1) * segmentSize
-    percent := Integer(basePercent + (loopRatio * segmentSize))
 
-    if (percent != lastPercent) {
-        ProgressBar.Value := percent
-        lastPercent := percent
-        if (ProgressText)
-            ProgressText.Redraw()
-    }
-    ShowTip(currentStepText)
-}
-
-UpdateBuyCarLoopProgress() {
-    global isBuyCarRunning, buyCarStartTime, BuyCarTotalMs, ProgressBar, ProgressText, currentStepText, currentBuyCarLoopItem, BuyCarLoopLimit
-    static lastPercent := -1
-
-    if (!isBuyCarRunning) {
-        SetTimer(UpdateBuyCarLoopProgress, 0)
-        lastPercent := -1
-        return
-    }
-
-    loopIndex := (currentBuyCarLoopItem > 0) ? currentBuyCarLoopItem : 1
-    elapsedInCurrent := Min(A_TickCount - buyCarStartTime, BuyCarTotalMs)
-    loopRatio := elapsedInCurrent / BuyCarTotalMs
-    segmentSize := 10000 / BuyCarLoopLimit
-    basePercent := (loopIndex - 1) * segmentSize
-    percent := Integer(basePercent + (loopRatio * segmentSize))
-
-    if (percent != lastPercent) {
-        ProgressBar.Value := percent
-        lastPercent := percent
-        if (ProgressText)
-            ProgressText.Redraw()
-    }
-    ShowTip(currentStepText)
-}
 
 ShowTip(stepText) {
     global GuiX, GuiY, currentStepText, ProgressText, sequenceStartTime, sequenceTotalSec
@@ -2955,31 +2907,7 @@ RunRivalSequence() {
     StopGasAndClean()
 }
 
-UpdateRivalLoopProgress() {
-    global isRivalRunning, rivalLoopStartTime, RivalTotalMs, ProgressBar, ProgressText, currentStepText, currentRivalLoopItem, RivalLoopLimit
-    static lastPercent := -1
 
-    if (!isRivalRunning) {
-        SetTimer(UpdateRivalLoopProgress, 0)
-        lastPercent := -1
-        return
-    }
-
-    loopIndex := (currentRivalLoopItem > 0) ? currentRivalLoopItem : 1
-    elapsedInCurrent := Min(A_TickCount - rivalLoopStartTime, RivalTotalMs)
-    loopRatio := elapsedInCurrent / RivalTotalMs
-    segmentSize := 10000 / RivalLoopLimit
-    basePercent := (loopIndex - 1) * segmentSize
-    percent := Integer(basePercent + (loopRatio * segmentSize))
-
-    if (percent != lastPercent) {
-        ProgressBar.Value := percent
-        lastPercent := percent
-        if (ProgressText)
-            ProgressText.Redraw()
-    }
-    ShowTip(currentStepText)
-}
 
 ; --- 時間格式化輔助函數（支援 hh:mm:ss、mm:ss 與 ss秒） ---
 FormatTimeDuration(seconds) {
