@@ -2054,6 +2054,9 @@ RunNewSequence(bypassConfirm := false) {
         preMs += CalculateActionMs(action)
     }
     
+    local normalLastSleep := 10000
+    local finalLastSleep := 25000
+
     ; 計算普通單次與最後一次循環時間
     oneLoopMs := 0
     xActionMs := 0
