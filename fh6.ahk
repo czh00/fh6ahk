@@ -48,13 +48,27 @@ global AutoLoopEnabled := false    ; 自動雙循環開關
 global AutoLoopCount := 0          ; 自動雙循環當前次數
 global RivalEndMin := 0           ; 勁敵刷錢預計結束時間（分）
 
-; [觸控按鈕位置與進度條設定]
-global GuiX := 0
-global GuiY := 0
-global GuiH := 30
-global GuiOpacity := 180
-global ProgressBarWidth := 610
-global IsSimplifyDividers := true ; 簡化進度條格數（簡化後每十次畫一格避免太密集）
+; [觸控按鈕位置與進度條設定]
+global GuiX := 0
+global GuiY := 0
+global GuiH := 30
+global GuiOpacity := 180
+global ProgressBarWidth := 610
+global IsSimplifyDividers := true ; 簡化進度條格數（簡化後每十次畫一格避免太密集）
+
+; [圖示顯示設定]
+global ShowIcon_Esc := true          ; 顯示送出 Esc 圖示
+global ShowIcon_NewSeq := true       ; 顯示賺技能點圖示
+global ShowIcon_Seq := true          ; 顯示點技能圖示
+global ShowIcon_BuyCar := true       ; 顯示買車圖示
+global ShowIcon_Rival := true        ; 顯示勁敵刷錢圖示
+global ShowIcon_Gas := true          ; 顯示油門圖示
+global ShowIcon_EnterSpam := true    ; 顯示連點 Enter 圖示
+global ShowIcon_Exit := true         ; 顯示安全門圖示
+
+; [全域進度條比例分格變數]
+global globalSegmentEnds := []
+global globalTotalMs := 1 ; 簡化進度條格數（簡化後每十次畫一格避免太密集）
 
 ; [動態分格 UI 陣列]
 global DividerCtrls := []
@@ -97,32 +111,32 @@ global MyGui := Gui("+AlwaysOnTop -Caption -Border +ToolWindow +Owner")
 MyGui.BackColor := "010101"
 
 global GuiBtns := []
-global btnConfigs := [
-    { name: "esc",       symbol: "␛", x: 0,   fn: (*) => (WinActive(GameTitle) ? Send("{Esc}") : "") },
-    { name: "newSeq",    symbol: "⚔", x: 40,  fn: (*) => (isNewSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleNewSequence() : "")) },
-    { name: "seq",       symbol: "⚡", x: 80,  fn: (*) => (isSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleLButtonSequence() : "")) },
-    { name: "buyCar",    symbol: "🚗", x: 120, fn: (*) => (isBuyCarRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleBuyCarSequence() : "")) },
-    { name: "rival",     symbol: "🎖", x: 160, fn: (*) => (isRivalRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleRivalSequence() : "")) },
-    { name: "gas",       symbol: "🏆", x: 200, fn: (*) => (isGasOn ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleGas() : "")) },
-    { name: "enterSpam", symbol: "🎰", x: 240, fn: (*) => (isEnterSpamRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleEnterSpam() : "")) },
-    { name: "exit",      symbol: "⏏", x: 280, fn: (*) => (StopGasAndClean(), MyGui.Destroy(), ExitApp()) }
-]
-
-GetBtnIndex(name) {
-    global btnConfigs
-    for idx, cfg in btnConfigs {
-        if (cfg.HasOwnProp("name") && cfg.name == name) {
-            return idx
-        }
-    }
-    return 0
-}
-
-MyGui.SetFont("s16", "Segoe UI Emoji")
-for idx, cfg in btnConfigs {
-    btn := MyGui.Add("Text", "cWhite x" cfg.x " y-2 w40 h34 Center +0x200 -Wrap", cfg.symbol)
-    btn.OnEvent("Click", cfg.fn)
-    GuiBtns.Push(btn)
+global btnConfigs := [
+    { name: "esc",       symbol: "␛", showVar: "ShowIcon_Esc",       fn: (*) => (WinActive(GameTitle) ? Send("{Esc}") : "") },
+    { name: "newSeq",    symbol: "⚔", showVar: "ShowIcon_NewSeq",    fn: (*) => (isNewSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleNewSequence() : "")) },
+    { name: "seq",       symbol: "⚡", showVar: "ShowIcon_Seq",       fn: (*) => (isSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleLButtonSequence() : "")) },
+    { name: "buyCar",    symbol: "🚗", showVar: "ShowIcon_BuyCar",    fn: (*) => (isBuyCarRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleBuyCarSequence() : "")) },
+    { name: "rival",     symbol: "🎖", showVar: "ShowIcon_Rival",     fn: (*) => (isRivalRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleRivalSequence() : "")) },
+    { name: "gas",       symbol: "🏆", showVar: "ShowIcon_Gas",       fn: (*) => (isGasOn ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleGas() : "")) },
+    { name: "enterSpam", symbol: "🎰", showVar: "ShowIcon_EnterSpam", fn: (*) => (isEnterSpamRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleEnterSpam() : "")) },
+    { name: "exit",      symbol: "⏏", showVar: "ShowIcon_Exit",      fn: (*) => (StopGasAndClean(), MyGui.Destroy(), ExitApp()) }
+]
+
+GetBtnIndex(name) {
+    global btnConfigs
+    for idx, cfg in btnConfigs {
+        if (cfg.HasOwnProp("name") && cfg.name == name) {
+            return idx
+        }
+    }
+    return 0
+}
+
+MyGui.SetFont("s16", "Segoe UI Emoji")
+for idx, cfg in btnConfigs {
+    btn := MyGui.Add("Text", "cWhite x-100 y-100 w40 h34 Center +0x200 -Wrap +Hidden", cfg.symbol)
+    btn.OnEvent("Click", cfg.fn)
+    GuiBtns.Push(btn)
 }
 
 ; 💡 進度條位置
@@ -139,45 +153,54 @@ MyGui.SetFont("s16 Bold", "Microsoft JhengHei")
 global ProgressText := MyGui.Add("Text", "cBlack x45 y1 w" . ProgressBarWidth . " h28 +BackgroundTrans +0x200", "")
 
 ; 定義 UI 切換輔助函數
-UpdateUiRunningState(btnName) {
-    global GuiBtns, MyGui, GuiX, GuiY, GuiH, GuiOpacity, ProgressBar, ProgressText
-    runningIdx := GetBtnIndex(btnName)
-    for idx, btn in GuiBtns {
-        if (idx == runningIdx) {
-            btn.Move(0, -2)
-            btn.Visible := true
-        } else {
-            btn.Visible := false
-            btn.Move(-100, -100)
-        }
-    }
-    
-    if (btnName == "enterSpam" || btnName == "gas") {
-        ProgressBar.Visible := false
-        ProgressText.Visible := false
-        MyGui.Show("X" GuiX " Y" GuiY " W40 h" GuiH " NoActivate")
-    } else {
-        ProgressBar.Visible := true
-        ProgressText.Visible := true
-        MyGui.Show("X" GuiX " Y" GuiY " W660 h" GuiH " NoActivate")
-    }
-    WinSetTransparent(GuiOpacity, MyGui.Hwnd)
-}
-
-ResetUiToNormal() {
-    global GuiBtns, MyGui, GuiX, GuiY, GuiH, GuiOpacity, ProgressBar, ProgressText, GameTitle, btnConfigs
-    ProgressBar.Visible := false
-    ProgressText.Visible := false
-    for idx, btn in GuiBtns {
-        btn.Move(btnConfigs[idx].x, -2)
-        btn.Visible := true
-    }
-    
-    currentActive := WinActive(GameTitle) || WinActive("ahk_id " MyGui.Hwnd)
-    if (currentActive) {
-        MyGui.Show("X" GuiX " Y" GuiY " W" . (btnConfigs.Length * 40) . " h" . GuiH . " NoActivate")
-        WinSetTransparent(GuiOpacity, MyGui.Hwnd)
-    }
+UpdateUiRunningState(btnName) {
+    global GuiBtns, MyGui, GuiX, GuiY, GuiH, GuiOpacity, ProgressBar, ProgressText
+    runningIdx := GetBtnIndex(btnName)
+    for idx, btn in GuiBtns {
+        if (idx == runningIdx) {
+            btn.Move(0, -2)
+            btn.Visible := true
+        } else {
+            btn.Visible := false
+            btn.Move(-100, -100)
+        }
+    }
+    
+    if (btnName == "enterSpam" || btnName == "gas") {
+        ProgressBar.Visible := false
+        ProgressText.Visible := false
+        MyGui.Show("X" GuiX " Y" GuiY " W40 h" GuiH " NoActivate")
+    } else {
+        ProgressBar.Visible := true
+        ProgressText.Visible := true
+        MyGui.Show("X" GuiX " Y" GuiY " W660 h" GuiH " NoActivate")
+    }
+    WinSetTransparent(GuiOpacity, MyGui.Hwnd)
+}
+
+ResetUiToNormal() {
+    global GuiBtns, MyGui, GuiX, GuiY, GuiH, GuiOpacity, ProgressBar, ProgressText, GameTitle, btnConfigs
+    ProgressBar.Visible := false
+    ProgressText.Visible := false
+    
+    currentX := 0
+    for idx, btn in GuiBtns {
+        cfg := btnConfigs[idx]
+        if (%(cfg.showVar)%) {
+            btn.Move(currentX, -2)
+            btn.Visible := true
+            currentX += 40
+        } else {
+            btn.Visible := false
+            btn.Move(-100, -100)
+        }
+    }
+    
+    currentActive := WinActive(GameTitle) || WinActive("ahk_id " MyGui.Hwnd)
+    if (currentActive) {
+        MyGui.Show("X" GuiX " Y" GuiY " W" . currentX . " h" . GuiH . " NoActivate")
+        WinSetTransparent(GuiOpacity, MyGui.Hwnd)
+    }
 }
 
 ResetUiToNormal()
@@ -194,20 +217,59 @@ SetTimer(WatchJoystick, 60)
 ; =================================================================
 ; --- 【進度條動態分格管理】 ---
 ; =================================================================
-DrawDividers(limit) {
-    global DividerCtrls, ProgressBarWidth, IsSimplifyDividers, MyGui
-    ClearDividers()
-
-    totalWidth := ProgressBarWidth
-    xPositions := []
-    segmentWidth := totalWidth / limit
-
-    Loop limit - 1 {
-        ; 如果開啟簡化且次數大於等於 20，只有滿 10 格（A_Index 是 10 的倍數）時才畫
-        if (IsSimplifyDividers && limit >= 20) {
-            if (Mod(A_Index, 10) == 0) {
-                xPositions.Push(45 + (A_Index * segmentWidth))
-            }
+DrawDividers() {
+    global DividerCtrls, IsSimplifyDividers, globalSegmentEnds, globalTotalMs, ProgressBarWidth, MyGui
+    ClearDividers()
+    
+    if (globalSegmentEnds.Length == 0 || globalTotalMs <= 0) {
+        return
+    }
+
+    xPositions := []
+    
+    ; 1. 第一個分割點 (前置結束)
+    if (globalSegmentEnds.Length > 1) {
+        preEndX := 45 + (globalSegmentEnds[1] / globalTotalMs) * ProgressBarWidth
+        xPositions.Push(preEndX)
+    }
+
+    ; 2. 循環分割點
+    loopCount := globalSegmentEnds.Length - 1
+    if (IsSimplifyDividers && loopCount >= 20) {
+        for idx, endTime in globalSegmentEnds {
+            if (idx == 1 || idx == globalSegmentEnds.Length) {
+                continue
+            }
+            loopIdx := idx - 1
+            if (Mod(loopIdx, 10) == 0) {
+                xPos := 45 + (endTime / globalTotalMs) * ProgressBarWidth
+                xPositions.Push(xPos)
+            }
+        }
+    } else {
+        for idx, endTime in globalSegmentEnds {
+            if (idx == globalSegmentEnds.Length) {
+                continue
+            }
+            if (idx == 1) {
+                continue
+            }
+            xPos := 45 + (endTime / globalTotalMs) * ProgressBarWidth
+            xPositions.Push(xPos)
+        }
+    }
+
+    while (xPositions.Length > DividerCtrls.Length) {
+        ctrl := MyGui.Add("Text", "y3 w2 h24 +BackgroundAAAAFF +Hidden", "")
+        DividerCtrls.Push(ctrl)
+    }
+
+    for idx, xPos in xPositions {
+        ctrl := DividerCtrls[idx]
+        ctrl.Move(xPos, 3)
+        ctrl.Visible := true
+    }
+}
         } else {
             ; 否則每一格都畫
             xPositions.Push(45 + (A_Index * segmentWidth))
@@ -1430,9 +1492,45 @@ RunLButtonSequence(bypassConfirm := false) {
         }
     }
 
-    DrawDividers(LoopCountLimit)
-    sequenceStartTime := A_TickCount
-    loopStartTime := A_TickCount ; 初始化避免計時器讀取時出錯
+        ; 計算前置時間
+    preparationMs := 0
+    for idx, action in preActions {
+        if (!SkillBuyCarEnabled && idx > 6) {
+            break
+        }
+        preparationMs += CalculateActionMs(action)
+    }
+    if (SkillBuyCarEnabled) {
+        preparationMs += oneBuyLoopMs * LoopCountLimit
+        for action in buyCarEndActions {
+            preparationMs += CalculateActionMs(action)
+        }
+    }
+
+    ; 設定全域進度條變數
+    globalTotalMs := TotalMs
+    globalSegmentEnds := [ preparationMs ]
+    if (LoopCountLimit >= 1) {
+        globalSegmentEnds.Push(preparationMs + firstLoopMs)
+    }
+    if (LoopCountLimit > 1) {
+        local transitMs := 0
+        for action in skillTransitActions {
+            transitMs += CalculateActionMs(action)
+        }
+        Loop LoopCountLimit - 2 {
+            globalSegmentEnds.Push(globalSegmentEnds[globalSegmentEnds.Length] + restLoopMs + transitMs)
+        }
+        local finalEndMs := 0
+        for action in finalEndActions {
+            finalEndMs += CalculateActionMs(action)
+        }
+        globalSegmentEnds.Push(globalTotalMs)
+    }
+    
+    DrawDividers()
+    sequenceStartTime := A_TickCount
+    loopStartTime := A_TickCount
     UpdateUiRunningState("seq")
     SetTimer(UpdateLoopProgress, 100)
 
@@ -1734,8 +1832,6 @@ WatchGameWindow() {
             } else {
                 ResetUiToNormal()
             }
-            
-            MyGui.Show("x" GuiX " y" GuiY " NoActivate")
             isShowing := true
             lastX := GuiX
             lastY := GuiY
@@ -1970,9 +2066,35 @@ RunNewSequence(bypassConfirm := false) {
         }
     }
 
-    DrawDividers(NewSequenceLoopLimit)
-    sequenceStartTime := A_TickCount
-    newLoopStartTime := A_TickCount ; 初始化避免計時器讀取時出錯
+        ; 計算前置時間
+    preMs := 0
+    for action in preActions {
+        preMs += CalculateActionMs(action)
+    }
+    
+    ; 計算普通單次與最後一次循環時間
+    oneLoopMs := 0
+    xActionMs := 0
+    for action in loopActions {
+        actMs := CalculateActionMs(action)
+        oneLoopMs += actMs
+        if (action.HasOwnProp("key") && action.key == "x") {
+            xActionMs := actMs
+        }
+    }
+    finalLoopMs := oneLoopMs - xActionMs + (finalLastSleep - normalLastSleep)
+    
+    ; 設定全域進度條變數
+    globalTotalMs := CalculateTotalMs(NewSequenceLoopLimit)
+    globalSegmentEnds := [ preMs ]
+    Loop NewSequenceLoopLimit - 1 {
+        globalSegmentEnds.Push(globalSegmentEnds[globalSegmentEnds.Length] + oneLoopMs)
+    }
+    globalSegmentEnds.Push(globalSegmentEnds[globalSegmentEnds.Length] + finalLoopMs)
+    
+    DrawDividers()
+    sequenceStartTime := A_TickCount
+    newLoopStartTime := A_TickCount
     UpdateUiRunningState("newSeq")
     SetTimer(UpdateNewLoopProgress, 100)
 
@@ -2198,8 +2320,13 @@ RunBuyCarSequence() {
         }
     }
 
-    DrawDividers(BuyCarLoopLimit)
-    sequenceStartTime := A_TickCount
+        globalTotalMs := BuyCarLoopLimit * BuyCarTotalMs
+    globalSegmentEnds := []
+    Loop BuyCarLoopLimit {
+        globalSegmentEnds.Push(A_Index * BuyCarTotalMs)
+    }
+    DrawDividers()
+    sequenceStartTime := A_TickCount
     UpdateUiRunningState("buyCar")
     SetTimer(UpdateBuyCarLoopProgress, 100)
 
@@ -2362,30 +2489,92 @@ StopGasAndClean() {
     ForceReleaseW_Hardware()
 }
 
-UpdateLoopProgress() {
-    global isSequenceRunning, loopStartTime, currentLoopTotalMs, ProgressBar, ProgressText, currentStepText, currentLoopItem, LoopCountLimit
-    static lastPercent := -1
-    
-    if (!isSequenceRunning) {
-        SetTimer(UpdateLoopProgress, 0)
-        lastPercent := -1
-        return
-    }
-
-    loopIndex := (currentLoopItem > 0) ? currentLoopItem : 1
-    elapsedInCurrent := Min(A_TickCount - loopStartTime, currentLoopTotalMs)
-    loopRatio := (currentLoopTotalMs > 0) ? (elapsedInCurrent / currentLoopTotalMs) : 0
-    segmentSize := 10000 / LoopCountLimit
-    basePercent := (loopIndex - 1) * segmentSize
-    percent := Integer(basePercent + (loopRatio * segmentSize))
-
-    if (percent != lastPercent) {
-        ProgressBar.Value := percent
-        lastPercent := percent
-        if (ProgressText)
-            ProgressText.Redraw()
-    }
-    ShowTip(currentStepText)
+UpdateLoopProgress() {
+    global isSequenceRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText
+    static lastPercent := -1
+    
+    if (!isSequenceRunning) {
+        SetTimer(UpdateLoopProgress, 0)
+        lastPercent := -1
+        return
+    }
+
+    elapsedTotal := A_TickCount - sequenceStartTime
+    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+
+    if (percent != lastPercent) {
+        ProgressBar.Value := percent
+        lastPercent := percent
+        if (ProgressText)
+            ProgressText.Redraw()
+    }
+    ShowTip(currentStepText)
+}
+
+UpdateNewLoopProgress() {
+    global isNewSequenceRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText
+    static lastPercent := -1
+
+    if (!isNewSequenceRunning) {
+        SetTimer(UpdateNewLoopProgress, 0)
+        lastPercent := -1
+        return
+    }
+
+    elapsedTotal := A_TickCount - sequenceStartTime
+    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+
+    if (percent != lastPercent) {
+        ProgressBar.Value := percent
+        lastPercent := percent
+        if (ProgressText)
+            ProgressText.Redraw()
+    }
+    ShowTip(currentStepText)
+}
+
+UpdateBuyCarLoopProgress() {
+    global isBuyCarRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText
+    static lastPercent := -1
+
+    if (!isBuyCarRunning) {
+        SetTimer(UpdateBuyCarLoopProgress, 0)
+        lastPercent := -1
+        return
+    }
+
+    elapsedTotal := A_TickCount - sequenceStartTime
+    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+
+    if (percent != lastPercent) {
+        ProgressBar.Value := percent
+        lastPercent := percent
+        if (ProgressText)
+            ProgressText.Redraw()
+    }
+    ShowTip(currentStepText)
+}
+
+UpdateRivalLoopProgress() {
+    global isRivalRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText
+    static lastPercent := -1
+
+    if (!isRivalRunning) {
+        SetTimer(UpdateRivalLoopProgress, 0)
+        lastPercent := -1
+        return
+    }
+
+    elapsedTotal := A_TickCount - sequenceStartTime
+    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+
+    if (percent != lastPercent) {
+        ProgressBar.Value := percent
+        lastPercent := percent
+        if (ProgressText)
+            ProgressText.Redraw()
+    }
+    ShowTip(currentStepText)
 }
 
 UpdateNewLoopProgress() {
@@ -2664,8 +2853,13 @@ RunRivalSequence() {
         }
     }
 
-    DrawDividers(RivalLoopLimit)
-    sequenceStartTime := A_TickCount
+        globalTotalMs := RivalLoopLimit * RivalTotalMs
+    globalSegmentEnds := []
+    Loop RivalLoopLimit {
+        globalSegmentEnds.Push(A_Index * RivalTotalMs)
+    }
+    DrawDividers()
+    sequenceStartTime := A_TickCount
     UpdateUiRunningState("rival")
     SetTimer(UpdateRivalLoopProgress, 100)
 
