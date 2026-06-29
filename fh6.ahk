@@ -1,4 +1,4 @@
-﻿; =================================================================
+; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
 ; 版本: 1.4.0
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
@@ -269,24 +269,6 @@ DrawDividers() {
         ctrl.Move(xPos, 3)
         ctrl.Visible := true
     }
-}
-        } else {
-            ; 否則每一格都畫
-            xPositions.Push(45 + (A_Index * segmentWidth))
-        }
-    }
-
-    ; 若分割線座標數量超出預建控制項陣列長度，則動態追加控制項
-    while (xPositions.Length > DividerCtrls.Length) {
-        ctrl := MyGui.Add("Text", "y3 w2 h24 +BackgroundAAAAFF +Hidden", "")
-        DividerCtrls.Push(ctrl)
-    }
-
-    for idx, xPos in xPositions {
-        ctrl := DividerCtrls[idx]
-        ctrl.Move(xPos, 3)
-        ctrl.Visible := true
-    }
 }
 
 ClearDividers() {
