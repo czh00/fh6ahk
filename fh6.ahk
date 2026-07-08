@@ -1,6 +1,6 @@
 ; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
-; 版本: 1.4.1
+; 版本: 1.4.2
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
 ;       採用橫向懸浮按鈕 UI，並完美支援 Xbox 手把與鍵盤的雙向控制及狀態回饋。
 ; =================================================================
@@ -70,7 +70,7 @@ global ProgressBarWidth := 610
 global IsSimplifyDividers := true ; 簡化進度條格數（簡化後每十次畫一格避免太密集）
 
 ; [圖示顯示設定]
-global ShowIcon_Esc := true          ; 顯示送出 Esc 圖示
+global ShowIcon_Esc := true          ; 顯示按 Esc 圖示
 global ShowIcon_NewSeq := true       ; 顯示賺技能點圖示
 global ShowIcon_Seq := true          ; 顯示點技能圖示
 global ShowIcon_BuyCar := true       ; 顯示買車圖示
@@ -142,49 +142,49 @@ global SkillPath := "808" ; 設定車型以決定預設路徑，可填入 "808",
 
 GetSkillStaticActions(loopIdx) {
     local actions := [
-        { key: "Down", press: 250, wait: 450, tip: "20. 拍賣場 送出 ⬇" },
-        { key: "Enter", press: 250, wait: 600, tip: "21. 送出 ⏎" },
-        { key: "Down", press: 250, wait: 450, tip: "22. 開始拍賣會 送出 ⬇" },
-        { key: "Enter", press: 250, wait: 600, tip: "23. 送出 ⏎" },
+        { key: "Down", press: 250, wait: 450, tip: "20. 拍賣場 按 ⬇" },
+        { key: "Enter", press: 250, wait: 600, tip: "21. 按 ⏎" },
+        { key: "Down", press: 250, wait: 450, tip: "22. 開始拍賣會 按 ⬇" },
+        { key: "Enter", press: 250, wait: 600, tip: "23. 按 ⏎" },
         { sleep: 2000, countdown: true, tip: "等待 2 秒" },
-        { key: "x", press: 250, wait: 450, tip: "24 .排序 送出 X" },
-        { key: "Down", press: 80, wait: 100, repeat: 12, tip: "25. 最近新增 送出 ⬇( {1}/6)" }, ;6格
-        { key: "Enter", press: 250, wait: 1000, tip: "26. 送出 ⏎" },
-        { key: "Backspace", press: 250, wait: 1000, tip: "27. 篩選 送出 ⌫" },
-        { key: "Enter", press: 250, wait: 600, tip: "28. 到最新車輛 送出 ⏎ " }
+        { key: "x", press: 250, wait: 450, tip: "24 .排序 按 X" },
+        { key: "Down", press: 80, wait: 100, repeat: 12, tip: "25. 最近新增 按 ⬇( {1}/6)" }, ;6格
+        { key: "Enter", press: 250, wait: 1000, tip: "26. 按 ⏎" },
+        { key: "Backspace", press: 250, wait: 1000, tip: "27. 篩選 按 ⌫" },
+        { key: "Enter", press: 250, wait: 600, tip: "28. 到最新車輛 按 ⏎ " }
     ]
-    
+ 
     if (loopIdx == 1) {
         ; 循環前：選取並駕駛第一輛車
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "29. 送出 ⏎" })
-        actions.Push({ key: "Down", press: 250, wait:600, tip: "30. 駕駛 送出 ⬇" })
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "31. 送出 ⏎" })
+        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "29. 按 ⏎" })
+        actions.Push({ key: "Down", press: 250, wait:600, tip: "30. 駕駛 按 ⬇" })
+        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "31. 按 ⏎" })
         actions.Push({ sleep: 5000, countdown: true, tip: "等待載入 5 秒" })
     } else {
         ; 循環中：選取第二輛車駕駛，並刪除第一輛車
-        actions.Push({ key: "Down", press: 250, wait: 450, tip: "29. 第二輛車 送出 ⬇" })
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "30. 送出 ⏎" })
-        actions.Push({ key: "Down", press: 250, wait: 600, tip: "32. 駕駛 送出 ⬇" })
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "33. 送出 ⏎" })
+        actions.Push({ key: "Down", press: 250, wait: 450, tip: "29. 第二輛車 按 ⬇" })
+        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "30. 按 ⏎" })
+        actions.Push({ key: "Down", press: 250, wait: 600, tip: "32. 駕駛 按 ⬇" })
+        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "33. 按 ⏎" })
         actions.Push({ sleep: 5000, countdown: true, tip: "等待載入 5 秒" })
-        actions.Push({ key: "Up", press: 250, wait: 450, tip: "34. 移動到第一輛車 送出 ⬆" })
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "35. 開啟選單送出 ⏎" })
-        actions.Push({ key: "Down", press: 80, wait: 100, repeat: 10, tip: "36. 從車庫移除 送出 ⬇( {1}/5)" }) ;5格
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "37. 送出 ⏎" })
-        actions.Push({ key: "Down", press: 250, wait: 600, tip: "38. 確定移除 送出 ⬇" })
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "39. 送出 ⏎" })
+        actions.Push({ key: "Up", press: 250, wait: 450, tip: "34. 到第一輛車 按 ⬆" })
+        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "35. 開啟選單按 ⏎" })
+        actions.Push({ key: "Down", press: 80, wait: 100, repeat: 10, tip: "36. 從車庫移除 按 ⬇( {1}/5)" }) ;5格
+        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "37. 按 ⏎" })
+        actions.Push({ key: "Down", press: 250, wait: 600, tip: "38. 確定移除 按 ⬇" })
+        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "39. 按 ⏎" })
         actions.Push({ sleep: 2000, countdown: true, tip: "等待 2 秒" })
     }
-    
+ 
     ; 剩餘通用步驟
-    actions.Push({ key: "Esc", press: 250, wait: 1200, tip: "40. 送出 Esc (1/2)" })
-    actions.Push({ key: "Esc", press: 250, wait: 1200, tip: "41. 送出 Esc (2/2)" })
-    actions.Push({ key: "Right", press: 250, wait: 600, tip: "42. 送出 ⮕" })
-    actions.Push({ key: "Enter", press: 250, wait: 600, tip: "43. 送出 ⏎" })
+    actions.Push({ key: "Esc", press: 250, wait: 1200, tip: "40. 按 Esc (1/2)" })
+    actions.Push({ key: "Esc", press: 250, wait: 1200, tip: "41. 按 Esc (2/2)" })
+    actions.Push({ key: "Right", press: 250, wait: 600, tip: "42. 按 ⮕" })
+    actions.Push({ key: "Enter", press: 250, wait: 600, tip: "43. 按 ⏎" })
     actions.Push({ key: "Down", press: 80, wait: 100, repeat: 14, tip: "44. 點技能 ⬇( {1}/7)" }) ;7格
     actions.Push({ sleep: 400, tip: "45. 等待中 (400ms)" })
-    actions.Push({ key: "Enter", press: 250, wait: 1500, tip: "46. 送出 ⏎ (1500ms)" })
-    
+    actions.Push({ key: "Enter", press: 250, wait: 1500, tip: "46. 按 ⏎ (1500ms)" })
+ 
     return actions
 }
 
@@ -210,7 +210,7 @@ global ActiveConfirmDialog := {
 OnHScroll(wParam, lParam, msg, hwnd) {
     global ActiveConfirmDialog
     ctrlHwnd := lParam & 0xFFFFFFFF
-    
+ 
     if (ActiveConfirmDialog.sliderMap && ActiveConfirmDialog.sliderMap.Has(ctrlHwnd)) {
         info := ActiveConfirmDialog.sliderMap[ctrlHwnd]
         if (info.type == "main" || info.type == "extra") {
@@ -280,7 +280,7 @@ UpdateUiRunningState(btnName) {
             btn.Move(-100, -100)
         }
     }
-    
+ 
     if (btnName == "enterSpam" || btnName == "gas") {
         PreProgressBar.Visible := false
         ProgressBar.Visible := false
@@ -308,7 +308,7 @@ ResetUiToNormal() {
     PreProgressBar.Visible := false
     ProgressBar.Visible := false
     ProgressText.Visible := false
-    
+ 
     currentX := 0
     for idx, btn in GuiBtns {
         cfg := btnConfigs[idx]
@@ -321,7 +321,7 @@ ResetUiToNormal() {
             btn.Move(-100, -100)
         }
     }
-    
+ 
     currentActive := WinActive(GameTitle) || WinActive("ahk_id " MyGui.Hwnd)
     if (currentActive) {
         MyGui.Show("X" GuiX " Y" GuiY " W" . currentX . " h" . GuiH . " NoActivate")
@@ -346,21 +346,21 @@ SetTimer(WatchJoystick, 60)
 DrawDividers() {
     global DividerCtrls, IsSimplifyDividers, globalSegmentEnds, globalTotalMs, ProgressBarWidth, MyGui, HasPreparationPhase
     ClearDividers()
-    
+ 
     if (globalSegmentEnds.Length == 0 || globalTotalMs <= 0) {
         return
     }
 
     xPositions := []
-    
+ 
     if (HasPreparationPhase) {
         preparationMs := globalSegmentEnds[1]
         loopsTotalMs := globalTotalMs - preparationMs
         loopProgressBarWidth := 580
-        
+
         ; 💡 第一個分割點 (前置結束) - 用於分開前置和循環
         xPositions.Push(75)
-        
+
         loopCount := globalSegmentEnds.Length - 1
         if (IsSimplifyDividers && loopCount >= 20) {
             for idx, endTime in globalSegmentEnds {
@@ -497,11 +497,11 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
 
 
 
-    
+ 
     ; 4x4 矩陣選擇相關控制變數
     local buttons := Map()
     selectedPath := []
-    
+ 
     UpdateButtonsState() {
         if (!isSkillSeq)
             return
@@ -525,7 +525,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 c := A_Index
                 btnKey := r "_" c
                 btnCtrl := buttons[btnKey]
-                
+ 
                 foundIdx := 0
                 for idx, pt in selectedPath {
                     if (pt.r == r && pt.c == c) {
@@ -533,7 +533,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                         break
                     }
                 }
-                
+ 
                 if (foundIdx > 0) {
                     if (foundIdx == 1) {
                         btnCtrl.Text := "🟢"
@@ -554,7 +554,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
         parts := StrSplit(btnKey, "_")
         r := Integer(parts[1])
         c := Integer(parts[2])
-        
+
         for idx, pt in selectedPath {
             if (pt.r == r && pt.c == c) {
                 if (idx == selectedPath.Length) {
@@ -567,7 +567,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 return
             }
         }
-        
+
         if (selectedPath.Length == 0) {
             if (r == 4 && c == 1) {
                 selectedPath.Push({r: r, c: c})
@@ -624,19 +624,19 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
 
         if (limitName == "RivalLoopLimit" && triggerCtrl) {
             singleLoopSec := getSingleLoopMsFn ? Ceil(getSingleLoopMsFn() / 1000) : (extraSliderCtrls[1].Value + (extraSliderCtrls[2].Value * 4) + extraSliderCtrls[3].Value + 42)
-            
+
             if (triggerCtrl.Hwnd == extraSliderCtrls[4].Hwnd || triggerCtrl.Hwnd == extraSliderCtrls[5].Hwnd) {
                 targetHour := extraSliderCtrls[4].Value
                 targetMin := extraSliderCtrls[5].Value
-                
+ 
                 currentTotalMin := A_Hour * 60 + A_Min
                 targetTotalMin := targetHour * 60 + targetMin
-                
+ 
                 diffMin := targetTotalMin - currentTotalMin
                 if (diffMin <= 0) {
                     diffMin += 1440
                 }
-                
+ 
                 limitVal := Floor((diffMin * 60) / singleLoopSec)
                 if (limitVal < 1) {
                     limitVal := 1
@@ -661,17 +661,17 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
 
         val := hasLimitSlider ? sliderCtrl.Value : 0
         isSimp := chkSimplify ? chkSimplify.Value : IsSimplifyDividers
-        
+
         vals := []
         if (hasLimitSlider) {
             vals.Push(val)
         }
-        
+
         if (hasExtraParams) {
             for idx, item in extraParams {
                 ctrlVal := extraSliderCtrls[idx].Value
                 vals.Push(ctrlVal)
-                
+ 
                 oldValStr := extraLabelCtrls[idx].valPart.Text
                 valStr := String(ctrlVal)
                 if (InStr(item.name, "分:秒") || InStr(item.name, "分：秒")) {
@@ -687,7 +687,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                         extraLabelCtrls[idx].valPart.Move(,, StrLen(valStr) * 16 + 4)
                         extraLabelCtrls[idx].part1.GetPos(&p1X, &p1Y, &p1W)
                         extraLabelCtrls[idx].valPart.Move(p1X + p1W)
-                        
+
                         extraLabelCtrls[idx].valPart.GetPos(&pvX, &pvY, &pvW)
                         extraLabelCtrls[idx].part2.Move(pvX + pvW)
                     }
@@ -710,7 +710,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 timeTextCtrl.Redraw()
             }
         }
-        
+
         if (hasLimitSlider && labelTextPart2) {
             oldValStr := labelTextPart2.Text
             if (oldValStr != String(val)) {
@@ -731,7 +731,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                     labelTextPart2.Move(,, StrLen(val) * 16 + 4)
                     labelTextPart1.GetPos(&l1X, &l1Y, &l1W)
                     labelTextPart2.Move(l1X + l1W)
-                    
+
                     labelTextPart2.GetPos(&l2X, &l2Y, &l2W)
                     labelTextPart3.Move(l2X + l2W)
                 }
@@ -788,10 +788,10 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
 
             ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
             labelTextPart1 := ConfirmGui.Add("Text", "x20 y" currY " +BackgroundTrans", "循環 ")
-            
+
             ConfirmGui.SetFont("s20 Bold cYellow", "Microsoft JhengHei")
             labelTextPart2 := ConfirmGui.Add("Text", "x+0 y" (currY - 5) " +BackgroundTrans", initialLimit)
-            
+
             ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
             labelTextPart3Text := (IsSimplifyDividers && initialLimit >= 20) ? "次 / 簡化為" Ceil(initialLimit / 10) "格：" : "次："
             labelTextPart3 := ConfirmGui.Add("Text", "x+0 y" currY " w220 +BackgroundTrans", labelTextPart3Text)
@@ -822,9 +822,9 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 } else if (InStr(item.name, "(格數)") || InStr(item.name, "(格)")) {
                     unitStr := "格"
                 }
-                
+ 
                 cleanName := RegExReplace(item.name, "\s*\([^)]+\)")
-                
+ 
                 valStr := String(initialVal)
                 if (InStr(item.name, "分:秒") || InStr(item.name, "分：秒")) {
                     mins := Floor(initialVal / 60)
@@ -835,10 +835,10 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 }
                 ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
                 lblCtrlPart1 := ConfirmGui.Add("Text", "x20 y" currY " +BackgroundTrans",cleanName " ")
-                
+ 
                 ConfirmGui.SetFont("s20 Bold cYellow", "Microsoft JhengHei")
                 lblCtrlVal := ConfirmGui.Add("Text", "x+0 y" (currY - 5) " +BackgroundTrans",valStr)
-                
+ 
                 ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
                 lblCtrlPart2 := ConfirmGui.Add("Text", "x+0 y" currY " w220 +BackgroundTrans",unitStr "：")
 
@@ -878,7 +878,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
             ConfirmGui.SetFont("s12 Bold cWhite", "Microsoft JhengHei")
             gridTitleCtrl := ConfirmGui.Add("Text", "x20 y" currY " w420 +BackgroundTrans", "點技能路徑設定 (起點左下角 🟢)：" globalSkillCost "點")
             currY += 25
-            
+
             gridY := currY
             Loop 4 {
                 r := A_Index
@@ -887,14 +887,14 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                     btnKey := r "_" c
                     bX := 20 + (c - 1) * 75
                     bY := gridY + (r - 1) * 55
-                    
+
                     cost := (r == 4) ? ((c == 4) ? 20 : 1) : ((r == 3) ? 3 : ((r == 2) ? 5 : 10))
                     btn := ConfirmGui.Add("Text", "x" bX " y" bY " w65 h48 Center +0x200 +Border +Background020202 cWhite", String(cost))
                     buttons[btnKey] := btn
                     btn.OnEvent("Click", OnGridClick.Bind(btnKey))
                 }
             }
-            
+
             ; 歸零路徑與預設路徑按鈕擺在網格右側
             btnReset := ConfirmGui.Add("Text", "x330 y" gridY " w110 h45 Center +0x200 +Border +Background020202 cWhite", "↩ 歸零路徑")
             btnReset.OnEvent("Click", (*) => (
@@ -902,7 +902,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 UpdateButtonsState(),
                 (recalcFn ? UpdateTimeDisplay() : "")
             ))
-            
+
             btn808 := ConfirmGui.Add("Text", "x330 y" (gridY + 55) " w110 h45 Center +0x200 +Border +Background020202 cWhite", "🚗 808 預設")
             btn808.OnEvent("Click", (*) => (
                 selectedPath := ClonePath(VehiclePaths["808"]),
@@ -916,18 +916,18 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 UpdateButtonsState(),
                 (recalcFn ? UpdateTimeDisplay() : "")
             ))
-            
+
             btnRevuelto := ConfirmGui.Add("Text", "x330 y" (gridY + 165) " w110 h45 Center +0x200 +Border +Background020202 cWhite", "🚗 Revuelto")
             btnRevuelto.OnEvent("Click", (*) => (
                 selectedPath := ClonePath(VehiclePaths["Revuelto"]),
                 UpdateButtonsState(),
                 (recalcFn ? UpdateTimeDisplay() : "")
             ))
-            
+
             ; 預設載入全域路徑設定
             selectedPath := ClonePath(globalSkillPath)
             UpdateButtonsState()
-            
+
             currY += 225
         }
 
@@ -987,7 +987,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
         }
         Sleep(50)
     }
-    
+ 
     if (ConfirmState.result) {
         if (hasLimitSlider) {
             %limitVarRef% := sliderCtrl.Value
@@ -1014,7 +1014,7 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
         }
 
     }
-    
+ 
     ConfirmGui.Destroy()
     ; 清空全域活動對話框狀態物件，釋放控制項參考以供後續使用
     ActiveConfirmDialog.sliderCtrl := ""
@@ -1146,7 +1146,7 @@ WatchJoystick() {
         if (!wasXDown) {
             wasXDown := true
             xPressedTime := A_TickCount
-            
+
             ; 觸發中按一下同鍵中斷 (F5 買車, F7 連點enter)
             if (isBuyCarRunning || isEnterSpamRunning) {
                 StopGasAndClean()
@@ -1196,7 +1196,7 @@ WatchJoystick() {
         if (!wasYDown) {
             wasYDown := true
             yPressedTime := A_TickCount
-            
+
             ; 觸發中按一下同鍵中斷 (F8 技能行程)
             if (isSequenceRunning) {
                 StopGasAndClean()
@@ -1227,7 +1227,7 @@ WatchJoystick() {
         if (!wasLDown) {
             wasLDown := true
             lPressedTime := A_TickCount
-            
+
             ; 觸發中按一下同鍵中斷 (F6 賺技能點)
             if (isNewSequenceRunning) {
                 StopGasAndClean()
@@ -1236,7 +1236,7 @@ WatchJoystick() {
         } else {
             if (lPressedTime != 0) {
                 elapsed := A_TickCount - lPressedTime
-                
+ 
                 ; 油門行程 (F9) 運行中 -> 長按 LB 中斷
                 if (isGasOn) {
                     if (elapsed >= LongPressDelay * 1000) {
@@ -1340,26 +1340,26 @@ RunLButtonSequence(bypassConfirm := false) {
 
     buyCarEndActions := [
         ; --- 買車完畢後的收尾步驟 ---
-        { key: "Esc", press: 250, wait: 1200, repeat: 3, tip: "買車完畢: 送出 Esc ({1}/3)" },
-        { key: "Right", press: 250, wait: 600, tip: "買車完畢: 送出 ⮕" },
-        { key: "Up", press: 250, wait: 600, tip: "買車完畢: 送出 ⬆" }
+        { key: "Esc", press: 250, wait: 1200, repeat: 3, tip: "買車完畢: 按 Esc ({1}/3)" },
+        { key: "Right", press: 250, wait: 600, tip: "買車完畢: 按 ⮕" },
+        { key: "Up", press: 250, wait: 600, tip: "買車完畢: 按 ⬆" }
     ]
 
     skillTransitActions := [
         ; --- 技能循環對接步驟 ---
-        { key: "Up", press: 250, wait: 500, repeat: 2, tip: "技能循環對接: 送出 ⬆ ({1}/2)" }
+        { key: "Up", press: 250, wait: 500, repeat: 2, tip: "技能循環對接: 按 ⬆ ({1}/2)" }
     ]
 
     skillEndActions := [
         ; --- 技能行程結尾步驟 ---
-        { key: "Esc", press: 250, wait: 1200, tip: "技能結尾: 送出 Esc (1/2)" },
-        { key: "Esc", press: 250, wait: 1200, tip: "技能結尾: 送出 Esc (2/2)" },
-        { key: "Left", press: 250, wait: 450, tip: "技能結尾: 送出 ⬅" }
+        { key: "Esc", press: 250, wait: 1200, tip: "技能結尾: 按 Esc (1/2)" },
+        { key: "Esc", press: 250, wait: 1200, tip: "技能結尾: 按 Esc (2/2)" },
+        { key: "Left", press: 250, wait: 450, tip: "技能結尾: 按 ⬅" }
     ]
 
     finalEndActions := [
         ; --- 技能行程最後一次結束的步驟 ---
-        { key: "Esc", press: 250, wait: 1200, repeat: 3, tip: "全部行程結束: 送出 Esc ({1}/3)" }
+        { key: "Esc", press: 250, wait: 1200, repeat: 3, tip: "全部行程結束: 按 Esc ({1}/3)" }
     ]
 
     navPress := 100
@@ -1369,65 +1369,65 @@ RunLButtonSequence(bypassConfirm := false) {
 
     preActions := [
         ; --- 行程開始前按 ---
-        { key: "esc", press: 250, wait: 1000, tip: "1. 送出 Esc" },
-        { key: "PgDn", press: 250, wait: 500, tip: "2. 送出 PgDn" },
-        { key: "Left", press: 250, wait: 500, tip: "3. 買賣車輛 送出 ⬅" },
-        { key: "Enter", press: 250, wait: 500, tip: "4. 送出 ⏎ (1/2)" },
-        { key: "Enter", press: 250, wait: 500, tip: "5. 去嘉年華 送出 ⏎ (2/2)" },
+        { key: "esc", press: 250, wait: 1000, tip: "1. 按 Esc" },
+        { key: "PgDn", press: 250, wait: 500, tip: "2. 按 PgDn" },
+        { key: "Left", press: 250, wait: 500, tip: "3. 買賣車輛 按 ⬅" },
+        { key: "Enter", press: 250, wait: 500, tip: "4. 按 ⏎ (1/2)" },
+        { key: "Enter", press: 250, wait: 500, tip: "5. 去嘉年華 按 ⏎ (2/2)" },
         { sleep: 6000, countdown: true, tip: "4. 等待 4 秒" },
-        { key: "Left", press: 250, wait: 500, tip: "7. 送出 ⬅" },
-        { key: "Down", press: 250, wait: 500, tip: "8. 收藏日誌 送出 ⬇" },
-        { key: "Enter", press: 250, wait: 500, tip: "9. 送出 ⏎" },
+        { key: "Left", press: 250, wait: 500, tip: "7. 按 ⬅" },
+        { key: "Down", press: 250, wait: 500, tip: "8. 收藏日誌 按 ⬇" },
+        { key: "Enter", press: 250, wait: 500, tip: "9. 按 ⏎" },
         { sleep: 1000, countdown: true, tip: "等待 1 秒" },
-        { key: "Right", press: 250, wait: 500, tip: "10. 探索大師 送出 ⮕" },
-        { key: "Enter", press: 250, wait: 500, tip: "11. 送出 ⏎" },
-        { key: "Down", press: 250, wait: 500, tip: "12. 車輛收藏 送出 ⬇" },
-        { key: "Enter", press: 250, wait: 500, tip: "13. 送出 ⏎" },
-        { key: "Right", press: 80, wait: 100, tip: "防漂移 送出 ⮕" },
-        { key: "Backspace", press: 250, wait: 500, tip: "14. 車廠 送出 ⌫" },
-        { key: "Left", press: 80, wait: 100, tip: "防漂移送出 ⬅" }
+        { key: "Right", press: 250, wait: 500, tip: "10. 探索大師 按 ⮕" },
+        { key: "Enter", press: 250, wait: 500, tip: "11. 按 ⏎" },
+        { key: "Down", press: 250, wait: 500, tip: "12. 車輛收藏 按 ⬇" },
+        { key: "Enter", press: 250, wait: 500, tip: "13. 按 ⏎" },
+        { key: "Right", press: 80, wait: 100, tip: "防漂移 按 ⮕" },
+        { key: "Backspace", press: 250, wait: 500, tip: "14. 車廠 按 ⌫" },
+        { key: "Left", press: 80, wait: 100, tip: "防漂移按 ⬅" }
     ]
 
     ; 15. 車廠垂直移動
     if (BuyCarMfgUp > 0) {
-        preActions.Push({ key: "Up", press: 250, wait: 500, repeat: BuyCarMfgUp, tip: "15-Up. 選車廠 送出 ⬆ (第 {1} 次/共 " . BuyCarMfgUp . " 次)" })
+        preActions.Push({ key: "Up", press: 250, wait: 500, repeat: BuyCarMfgUp, tip: "15-Up. 選車廠 按 ⬆ (第 {1} 次/共 " . BuyCarMfgUp . " 次)" })
     }
     if (BuyCarMfgDown > 0) {
-        preActions.Push({ key: "Down", press: 250, wait: 500, repeat: BuyCarMfgDown, tip: "15-Down. 選車廠 送出 ⬇ (第 {1} 次/共 " . BuyCarMfgDown . " 次)" })
+        preActions.Push({ key: "Down", press: 250, wait: 500, repeat: BuyCarMfgDown, tip: "15-Down. 選車廠 按 ⬇ (第 {1} 次/共 " . BuyCarMfgDown . " 次)" })
     }
 
     ; 16. 車廠水平移動
     if (BuyCarMfgLeft > 0) {
-        preActions.Push({ key: "Left", press: 250, wait: 500, repeat: BuyCarMfgLeft, tip: "16-Left. 選車廠 送出 ⬅ (第 {1} 次/共 " . BuyCarMfgLeft . " 次)" })
+        preActions.Push({ key: "Left", press: 250, wait: 500, repeat: BuyCarMfgLeft, tip: "16-Left. 選車廠 按 ⬅ (第 {1} 次/共 " . BuyCarMfgLeft . " 次)" })
     }
     if (BuyCarMfgRight > 0) {
-        preActions.Push({ key: "Right", press: 250, wait: 500, repeat: BuyCarMfgRight, tip: "16-Right. 選車廠 送出 ⮕ (第 {1} 次/共 " . BuyCarMfgRight . " 次)" })
+        preActions.Push({ key: "Right", press: 250, wait: 500, repeat: BuyCarMfgRight, tip: "16-Right. 選車廠 按 ⮕ (第 {1} 次/共 " . BuyCarMfgRight . " 次)" })
     }
 
     ; 17. 進入車廠
-    preActions.Push({ key: "Enter", press: 250, wait: 500, tip: "17. 選車廠 送出 Enter" })
+    preActions.Push({ key: "Enter", press: 250, wait: 500, tip: "17. 選車廠 按 Enter" })
 
     ; 18. 選車垂直與水平移動
     if (BuyCarSelUp > 0) {
-        preActions.Push({ key: "Up", press: 250, wait: 500, repeat: BuyCarSelUp, tip: "18-Up. 選車 送出 ⬆ (第 {1} 次/共 " . BuyCarSelUp . " 次)" })
+        preActions.Push({ key: "Up", press: 250, wait: 500, repeat: BuyCarSelUp, tip: "18-Up. 選車 按 ⬆ (第 {1} 次/共 " . BuyCarSelUp . " 次)" })
     }
     if (BuyCarSelDown > 0) {
-        preActions.Push({ key: "Down", press: 250, wait: 500, repeat: BuyCarSelDown, tip: "18-Down. 選車 送出 ⬇ (第 {1} 次/共 " . BuyCarSelDown . " 次)" })
+        preActions.Push({ key: "Down", press: 250, wait: 500, repeat: BuyCarSelDown, tip: "18-Down. 選車 按 ⬇ (第 {1} 次/共 " . BuyCarSelDown . " 次)" })
     }
     if (BuyCarSelLeft > 0) {
-        preActions.Push({ key: "Left", press: 250, wait: 500, repeat: BuyCarSelLeft, tip: "18-Left. 選車 送出 ⬅ (第 {1} 次/共 " . BuyCarSelLeft . " 次)" })
+        preActions.Push({ key: "Left", press: 250, wait: 500, repeat: BuyCarSelLeft, tip: "18-Left. 選車 按 ⬅ (第 {1} 次/共 " . BuyCarSelLeft . " 次)" })
     }
     if (BuyCarSelRight > 0) {
-        preActions.Push({ key: "Right", press: 250, wait: 500, repeat: BuyCarSelRight, tip: "18-Right. 選車 送出 ⮕ (第 {1} 次/共 " . BuyCarSelRight . " 次)" })
+        preActions.Push({ key: "Right", press: 250, wait: 500, repeat: BuyCarSelRight, tip: "18-Right. 選車 按 ⮕ (第 {1} 次/共 " . BuyCarSelRight . " 次)" })
     }
 
     buyCarActions := [
         ; --- 買車行程步驟 ---
-        { key: "Space", press: 250, wait: 500, tip: "買車: 送出 Space" },
-        { key: "Down", press: 250, wait: 500, tip: "買車: 送出 ⬇" },
-        { key: "Enter", press: 250, wait: 500, tip: "買車: 送出 ⏎ (1/3)" },
-        { key: "Enter", press: 250, wait: 500, tip: "買車: 送出 ⏎ (2/3)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "買車: 送出 ⏎ (3/3)" }
+        { key: "Space", press: 250, wait: 500, tip: "買車: 按 Space" },
+        { key: "Down", press: 250, wait: 500, tip: "買車: 按 ⬇" },
+        { key: "Enter", press: 250, wait: 500, tip: "買車: 按 ⏎ (1/3)" },
+        { key: "Enter", press: 250, wait: 500, tip: "買車: 按 ⏎ (2/3)" },
+        { key: "Enter", press: 250, wait: 1000, tip: "買車: 按 ⏎ (3/3)" }
     ]
 
 
@@ -1443,7 +1443,7 @@ RunLButtonSequence(bypassConfirm := false) {
         Loop path.Length - 1 {
             curr := path[A_Index]
             next := path[A_Index + 1]
-            
+
             ; 判斷前進方向
             if (next.r < curr.r) {
                 keys.Push("Up")
@@ -1479,7 +1479,7 @@ RunLButtonSequence(bypassConfirm := false) {
         navMs += (100 + 1200) * 2
     }
     local endMs := (100 + 1200) * 2 + (100 + 450)
-    
+ 
     local firstLoopMs := 0
     for action in GetSkillStaticActions(1) {
         firstLoopMs += CalculateActionMs(action)
@@ -1497,7 +1497,7 @@ RunLButtonSequence(bypassConfirm := false) {
         if (path == "") {
             path := globalSkillPath
         }
-        
+
         local totalMs := 0
         for idx, action in preActions {
             if (!SkillBuyCarEnabled && idx > 6) {
@@ -1511,29 +1511,29 @@ RunLButtonSequence(bypassConfirm := false) {
                 totalMs += CalculateActionMs(action)
             }
         }
-        
+
         local navKeysPath := GenerateKeySequence(path)
         local singleNavMs := (navPress + navWait + enterPress + enterWait) * navKeysPath.Length
-        
+
         local localEndMs := 0
         for action in skillEndActions {
             localEndMs += CalculateActionMs(action)
         }
-        
+
         local tmpFirstMs := 0
         for action in GetSkillStaticActions(1) {
             tmpFirstMs += CalculateActionMs(action)
         }
         tmpFirstMs += singleNavMs + localEndMs + (navPress + navWait) * 2 + (enterPress + enterWait)
-        
+
         local tmpRestMs := 0
         for action in GetSkillStaticActions(2) {
             tmpRestMs += CalculateActionMs(action)
         }
         tmpRestMs += singleNavMs + localEndMs + (navPress + navWait) * 2 + (enterPress + enterWait)
-        
+
         totalMs += tmpFirstMs + (tmpRestMs * (LoopCountLimit - 1))
-        
+
         if (LoopCountLimit > 1) {
             local transitMs := 0
             for action in skillTransitActions {
@@ -1541,11 +1541,11 @@ RunLButtonSequence(bypassConfirm := false) {
             }
             totalMs += (LoopCountLimit - 1) * transitMs
         }
-        
+
         for action in finalEndActions {
             totalMs += CalculateActionMs(action)
         }
-        
+
         return totalMs
     }
 
@@ -1579,11 +1579,11 @@ RunLButtonSequence(bypassConfirm := false) {
         }
         return isSequenceRunning
     }
-    
+ 
     recalcFn := (limit, skillPts, path := "") => (
         FormatTimeDuration(Ceil(CalculateTotalMs(path) / 1000))
     )
-    
+ 
     confirmed := false
     if (bypassConfirm) {
         SkillPoints := Min(999, NewSequenceLoopLimit * 10)
@@ -1596,7 +1596,7 @@ RunLButtonSequence(bypassConfirm := false) {
         extraParams := [
             { varRef: &SkillPoints, name: "技能點數", range: "30-999" }
         ]
-        
+
         isConfirming := true
         confirmed := ShowConfirmDialog("技能行程 ⚡", timeStr, &LoopCountLimit, recalcFn, extraParams, "LoopCountLimit")
         isConfirming := false
@@ -1619,7 +1619,7 @@ RunLButtonSequence(bypassConfirm := false) {
     for k in navKeys {
         navMs += (100 + 1200) * 2
     }
-    
+ 
     firstLoopMs := 0
     for action in GetSkillStaticActions(1) {
         firstLoopMs += CalculateActionMs(action)
@@ -1707,7 +1707,7 @@ RunLButtonSequence(bypassConfirm := false) {
         }
         globalSegmentEnds.Push(globalTotalMs)
     }
-    
+ 
     DrawDividers()
     sequenceStartTime := A_TickCount
     loopStartTime := A_TickCount
@@ -1722,7 +1722,7 @@ RunLButtonSequence(bypassConfirm := false) {
             loopBreak := true
             break
         }
-        
+
         ; 當不買車時，只執行前 6 步，第 7 步起直接跳過
         if (!SkillBuyCarEnabled && idx > 6) {
             break
@@ -1770,7 +1770,8 @@ RunLButtonSequence(bypassConfirm := false) {
     ; --- 2. 執行買車次數循環 ---
     if (!loopBreak && SkillBuyCarEnabled && LoopCountLimit > 0) {
         Loop LoopCountLimit {
-            currentLoopItem := A_Index
+    
+        currentLoopItem := A_Index
             currentLoopTotalMs := oneBuyLoopMs
             if (!isSequenceRunning || (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
                 loopBreak := true
@@ -1778,7 +1779,7 @@ RunLButtonSequence(bypassConfirm := false) {
             }
             buyCarLoopBreak := false
             for action in buyCarActions {
-                ShowTip("買車循環 [" A_Index "/" LoopCountLimit "]: " action.tip)
+                ShowTip("[" A_Index "/5]" action.tip)
                 if (!SendKey(action.key, action.press, action.wait, &isSequenceRunning)) {
                     buyCarLoopBreak := true
                     break
@@ -1829,10 +1830,10 @@ RunLButtonSequence(bypassConfirm := false) {
             currentLoopItem := A_Index
             currentLoopTotalMs := (A_Index == 1) ? firstLoopMs : restLoopMs
             loopStartTime := A_TickCount
-       
+ 
             ; 執行點技能的前半靜態步驟
             skillBreak := false
-            
+
             ; 僅在第二次以後的點技能循環中，開頭才按兩次 Up 對接畫面
             if (A_Index > 1) {
                 for action in skillTransitActions {
@@ -1900,24 +1901,24 @@ RunLButtonSequence(bypassConfirm := false) {
             }
 
             ; 執行路徑導航前先按三次左確認游標對接
-            ShowTip("技能導航前置: 送出 ⬅ (1/3)")
+            ShowTip("技能導航前置: 按 ⬅ (1/3)")
             if (!SendKey("Left", navPress, 100, &isSequenceRunning)) {
                 loopBreak := true
                 break
             }
-            ShowTip("技能導航前置: 送出 ⬅ (2/3)")
+            ShowTip("技能導航前置: 按 ⬅ (2/3)")
             if (!SendKey("Left", navPress, 100, &isSequenceRunning)) {
                 loopBreak := true
                 break
             }
-            ShowTip("技能導航前置: 送出 ⬅ (3/3)")
+            ShowTip("技能導航前置: 按 ⬅ (3/3)")
             if (!SendKey("Left", navPress, 100, &isSequenceRunning)) {
                 loopBreak := true
                 break
             }
 
             ; 點選起點的技能
-            ShowTip("技能導航前置: 送出 Enter (點選起點)")
+            ShowTip("技能導航前置: 按 Enter (點選起點)")
             if (!SendKey("Enter", enterPress, enterWait, &isSequenceRunning)) {
                 loopBreak := true
                 break
@@ -1927,13 +1928,13 @@ RunLButtonSequence(bypassConfirm := false) {
             navKeys := GenerateKeySequence()
             pathBreak := false
             for key in navKeys {
-                ShowTip("技能導航: 送出 " key)
+                ShowTip("技能導航: 按 " key)
                 if (!SendKey(key, navPress, navWait, &isSequenceRunning)) {
                     pathBreak := true
                     break
                 }
-                
-                ShowTip("技能導航: 送出 Enter")
+ 
+                ShowTip("技能導航: 按 Enter")
                 if (!SendKey("Enter", enterPress, enterWait, &isSequenceRunning)) {
                     pathBreak := true
                     break
@@ -1986,7 +1987,7 @@ RunLButtonSequence(bypassConfirm := false) {
             currentLoopTotalMs := 60000
             currentLoopItem := 1
             LoopCountLimit := 1
-            
+
             if (CountdownSleep(30000, "雙循環過場：等待 30 秒")) {
                 AutoLoopCount++
                 isSequenceRunning := false
@@ -2016,9 +2017,8 @@ WatchGameWindow() {
         try {
             ; ⬛ 拋棄所有狀態偵測：純粹、無條件抓取遊戲視窗的 X 與 Y
             WinGetPos(&wX, &wY, &wW, &wH, GameTitle)
-            
-            ; 這裡設定 X+15, Y+10 是讓它剛好浮貼在遊戲視窗的上方標題欄、邊框內部
-            GuiX := wX + 15
+
+            GuiX := wX + 4
             GuiY := wY + 0
         } catch {
             GuiX := 0
@@ -2028,7 +2028,7 @@ WatchGameWindow() {
         if (!isShowing) {
             MyGui.Hide()
             Sleep(100)
-            
+
             isRunning := (isSequenceRunning || isNewSequenceRunning || isBuyCarRunning || isEnterSpamRunning || isGasOn || isRivalRunning)
             if (isRunning) {
                 runName := isBuyCarRunning ? "buyCar" : (isNewSequenceRunning ? "newSeq" : (isEnterSpamRunning ? "enterSpam" : (isSequenceRunning ? "seq" : (isGasOn ? "gas" : "rival"))))
@@ -2124,32 +2124,32 @@ RunNewSequence(bypassConfirm := false) {
 
     preActions := [
         ; --- 行程開始前按 ---
-        { key: "esc", press: 250, wait: 1000, tip: "1. 送出 Esc" },
-        { key: "PgUp", press: 250, wait: 1000, tip: "2. 商店 送出 PgUp (1/2)" },
-        { key: "PgUp", press: 250, wait: 1000, tip: "3. 創意中心 送出 PgUp (2/2)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "4. 送出 ⏎ (1/2)" },
-        { key: "Enter", press: 250, wait: 1500, tip: "5. 送出 ⏎ (2/2)" },
-        { key: "PgDn", press: 80, wait: 100, repeat: 14, tip: "6. 歷史紀錄 送出 PgDn (第 {1} 次/共 7 次)" }, ;7格
-        { key: "PgUp", press: 250, wait: 1000, tip: "9. 送出 PgUp " },
+        { key: "esc", press: 250, wait: 1000, tip: "1. 按 Esc" },
+        { key: "PgUp", press: 250, wait: 1000, tip: "2. 商店 按 PgUp (1/2)" },
+        { key: "PgUp", press: 250, wait: 1000, tip: "3. 創意中心 按 PgUp (2/2)" },
+        { key: "Enter", press: 250, wait: 1000, tip: "4. 按 ⏎ (1/2)" },
+        { key: "Enter", press: 250, wait: 1500, tip: "5. 按 ⏎ (2/2)" },
+        { key: "PgDn", press: 80, wait: 100, repeat: 14, tip: "6. 歷史紀錄 按 PgDn (第 {1} 次/共 7 次)" }, ;7格
+        { key: "PgUp", press: 250, wait: 1000, tip: "9. 按 PgUp " },
         { sleep: 3000, countdown: true, tip: "等待 3 秒" },
-        { key: "Enter", press: 250, wait: 1000, tip: "7. 我的最愛 送出 ⏎" },
+        { key: "Enter", press: 250, wait: 1000, tip: "7. 我的最愛 按 ⏎" },
         { sleep: 3000, countdown: true, tip: "等待 3 秒" },
-        { key: "Enter", press: 250, wait: 2000, tip: "8. 單人 送出 ⏎" },
+        { key: "Enter", press: 250, wait: 2000, tip: "8. 單人 按 ⏎" },
         { sleep: 4000, countdown: true, tip: "14. 車輛列表 等待 4 秒" },
-        { key: "y", press: 250, wait: 500, tip: "10. 篩選 送出 Y" },
-        { key: "Enter", press: 250, wait: 500, tip: "11. 最愛 送出 ⏎" },
-        { key: "esc", press: 250, wait: 500, tip: "12. 送出 Esc" },
-        { key: "Enter", press: 250, wait: 500, tip: "13. 駕駛 送出 ⏎" },
+        { key: "y", press: 250, wait: 500, tip: "10. 篩選 按 Y" },
+        { key: "Enter", press: 250, wait: 500, tip: "11. 最愛 按 ⏎" },
+        { key: "esc", press: 250, wait: 500, tip: "12. 按 Esc" },
+        { key: "Enter", press: 250, wait: 500, tip: "13. 駕駛 按 ⏎" },
         { sleep: 25000, countdown: true, tip: "14. 進場等待 25 秒" }
     ]
 
     ; --- 循環步驟主體 (原本的賺技能點 5 個步驟) ---
     loopActions := [
-        { key: "Enter", press: 250, wait: 500, tip: "15-1. 開車 送出 ⏎ (250ms)" },
+        { key: "Enter", press: 250, wait: 500, tip: "15-1. 開車 按 ⏎ (250ms)" },
         { key: "w", dynamicWaitVar: "WHoldDuration", wait: 1000, countdown: true, tip: "15-2. 按住 W 前進" },
-        { key: "x", press: 250, wait: 500, tip: "15-3. 重新開始 送出 X  (250ms)" },
-        { key: "Enter", press: 250, wait: 500, tip: "15-4. 確定 送出 ⏎ (250ms)" },
-        { key: "Enter", press: 250, wait: 500, tip: "15-5. 有時跳出的評價 送出 ⏎ (250ms)" },
+        { key: "x", press: 250, wait: 500, tip: "15-3. 重新開始 按 X  (250ms)" },
+        { key: "Enter", press: 250, wait: 500, tip: "15-4. 確定 按 ⏎ (250ms)" },
+        { key: "Enter", press: 250, wait: 500, tip: "15-5. 有時跳出的評價 按 ⏎ (250ms)" },
         { sleep: 10000, countdown: true, tip: "15-6. 等待10秒" }
     ]
 
@@ -2164,12 +2164,12 @@ RunNewSequence(bypassConfirm := false) {
         }
     }
 
-    CalculateTotalMs(limit) {
+    CalculateTotalMs(limit, includeAutoLoop := false) {
         local total := 0
         for action in preActions {
             total += CalculateActionMs(action)
         }
-        
+
         local oneLoopMs := 0
         local xActionMs := 0
         for action in loopActions {
@@ -2179,25 +2179,25 @@ RunNewSequence(bypassConfirm := false) {
                 xActionMs := actMs
             }
         }
-        
+
         ; 總循環時間：普通循環次數 * 單次循環時間
         total += oneLoopMs * limit
-        
+
         if (limit > 0) {
             ; 最後一次循環會跳過 X，需扣除最後一次的 X 鍵執行時間
             total -= xActionMs
             ; 最後一次循環的 10 秒等待 (10000ms) 會變成 25 秒等待 (25000ms)，需加上額外 15 秒 (15000ms)
             total += 15000
         }
-        
+
         ; 若啟用自動雙循環，加上點技能（與買車）的預估時間，以及 30 秒過場等待時間
-        if (AutoLoopEnabled) {
+        if (includeAutoLoop) {
             local earnedPoints := Min(999, limit * 10)
             local neededPoints := globalSkillCost
             local skillLimit := Floor(earnedPoints / neededPoints)
             if (skillLimit >= 1) {
                 total += 30000 ; 雙循環過場等待 30 秒
-                
+ 
                 ; 點技能行程中的常數設定
                 local navPress := 100
                 local navWait := 1200
@@ -2206,23 +2206,23 @@ RunNewSequence(bypassConfirm := false) {
 
                 ; 宣告並動態取得點技能行程所需的陣列與函數
                 local skillPreActions := [
-                    { key: "esc", press: 250, wait: 1000, tip: "1. 送出 Esc" },
-                    { key: "PgDn", press: 250, wait: 500, tip: "2. 送出 PgDn" },
-                    { key: "Left", press: 250, wait: 500, tip: "3. 買賣車輛 送出 ⬅" },
-                    { key: "Enter", press: 250, wait: 500, tip: "4. 去嘉年華 送出 ⏎ (1/2)" },
-                    { key: "Enter", press: 250, wait: 500, tip: "5. 送出 ⏎ (2/2)" },
+                    { key: "esc", press: 250, wait: 1000, tip: "1. 按 Esc" },
+                    { key: "PgDn", press: 250, wait: 500, tip: "2. 按 PgDn" },
+                    { key: "Left", press: 250, wait: 500, tip: "3. 買賣車輛 按 ⬅" },
+                    { key: "Enter", press: 250, wait: 500, tip: "4. 去嘉年華 按 ⏎ (1/2)" },
+                    { key: "Enter", press: 250, wait: 500, tip: "5. 按 ⏎ (2/2)" },
                     { sleep: 6000, countdown: true, tip: "4. 等待 4 秒" },
-                    { key: "Left", press: 250, wait: 500, tip: "7. 送出 ⬅" },
-                    { key: "Down", press: 250, wait: 500, tip: "8. 收藏日誌 送出 ⬇" },
-                    { key: "Enter", press: 250, wait: 500, tip: "9. 送出 ⏎" },
+                    { key: "Left", press: 250, wait: 500, tip: "7. 按 ⬅" },
+                    { key: "Down", press: 250, wait: 500, tip: "8. 收藏日誌 按 ⬇" },
+                    { key: "Enter", press: 250, wait: 500, tip: "9. 按 ⏎" },
                     { sleep: 1000, countdown: true, tip: "等待 1 秒" },
-                    { key: "Right", press: 250, wait: 500, tip: "10. 探索大師 送出 ⮕" },
-                    { key: "Enter", press: 250, wait: 500, tip: "11. 送出 ⏎" },
-                    { key: "Down", press: 250, wait: 500, tip: "12. 車輛收藏 送出 ⬇" },
-                    { key: "Enter", press: 250, wait: 500, tip: "13. 送出 ⏎" },
-                    { key: "Right", press: 80, wait: 100, tip: "防漂移 送出 ⮕" },
-                    { key: "Backspace", press: 250, wait: 500, tip: "14. 車廠 送出 ⌫" },
-                    { key: "Left", press: 80, wait: 100, tip: "防漂移送出 ⬅" }
+                    { key: "Right", press: 250, wait: 500, tip: "10. 探索大師 按 ⮕" },
+                    { key: "Enter", press: 250, wait: 500, tip: "11. 按 ⏎" },
+                    { key: "Down", press: 250, wait: 500, tip: "12. 車輛收藏 按 ⬇" },
+                    { key: "Enter", press: 250, wait: 500, tip: "13. 按 ⏎" },
+                    { key: "Right", press: 80, wait: 100, tip: "防漂移 按 ⮕" },
+                    { key: "Backspace", press: 250, wait: 500, tip: "14. 車廠 按 ⌫" },
+                    { key: "Left", press: 80, wait: 100, tip: "防漂移按 ⬅" }
                 ]
 
                 if (BuyCarMfgUp > 0) {
@@ -2297,19 +2297,19 @@ RunNewSequence(bypassConfirm := false) {
                         skillPreMs += CalculateActionMs(action)
                     }
                 }
-                
+ 
                 ; 計算路徑導航按鍵序列的長度與時間
                 local navKeysCount := 0
                 if (globalSkillPath.Length > 1) {
                     navKeysCount := globalSkillPath.Length - 1
                 }
                 local singleNavMs := (navPress + navWait + enterPress + enterWait) * navKeysCount
-                
+ 
                 local localEndMs := 0
                 for action in skillEndActions {
                     localEndMs += CalculateActionMs(action)
                 }
-                
+ 
                 ; 第一輪循環時間
                 local tmpFirstMs := 0
                 for action in GetSkillStaticActions(1) {
@@ -2318,7 +2318,7 @@ RunNewSequence(bypassConfirm := false) {
                 ; 點起點的 3 次左 (快按: navPress + 100) + 1 次 Enter
                 tmpFirstMs += (navPress + 100) * 3 + (enterPress + enterWait)
                 tmpFirstMs += singleNavMs + localEndMs
-                
+ 
                 ; 其餘輪循環時間
                 local tmpRestMs := 0
                 for action in GetSkillStaticActions(2) {
@@ -2326,9 +2326,9 @@ RunNewSequence(bypassConfirm := false) {
                 }
                 tmpRestMs += (navPress + 100) * 3 + (enterPress + enterWait)
                 tmpRestMs += singleNavMs + localEndMs
-                
+ 
                 total += skillPreMs + tmpFirstMs + (tmpRestMs * (skillLimit - 1))
-                
+ 
                 if (skillLimit > 1) {
                     local transitMs := 0
                     for action in skillTransitActions {
@@ -2336,13 +2336,13 @@ RunNewSequence(bypassConfirm := false) {
                     }
                     total += (skillLimit - 1) * transitMs
                 }
-                
+ 
                 for action in skillFinalEndActions {
                     total += CalculateActionMs(action)
                 }
             }
         }
-        
+
         return total
     }
 
@@ -2378,10 +2378,10 @@ RunNewSequence(bypassConfirm := false) {
     }
 
     recalcFn := (limit, wHold) => (
-        FormatTimeDuration(Ceil(CalculateTotalMs(limit) / 1000))
+        FormatTimeDuration(Ceil(CalculateTotalMs(limit, AutoLoopEnabled) / 1000))
     )
     timeStr := recalcFn(NewSequenceLoopLimit, WHoldDuration)
-    
+ 
     extraParams := [
         { varRef: &WHoldDuration, name: "按住油門前進(秒)", range: "5-60" }
     ]
@@ -2393,7 +2393,7 @@ RunNewSequence(bypassConfirm := false) {
         isConfirming := true
         confirmed := ShowConfirmDialog("賺技能點 ⚔", timeStr, &NewSequenceLoopLimit, recalcFn, extraParams, "NewSequenceLoopLimit")
         isConfirming := false
-        
+
         if (confirmed) {
             if (AutoLoopEnabled) {
                 AutoLoopCount := 1
@@ -2413,7 +2413,7 @@ RunNewSequence(bypassConfirm := false) {
         oneLoopTotalMs += CalculateActionMs(action)
     }
     NewSequenceTotalMs := oneLoopTotalMs
-    sequenceTotalSec := Ceil(CalculateTotalMs(NewSequenceLoopLimit) / 1000)
+    sequenceTotalSec := Ceil(CalculateTotalMs(NewSequenceLoopLimit, false) / 1000)
 
     ; 檢查並等待路由器重啟 (今日 5:00 - 5:03 AM)
     if (AutoLoopEnabled && Enable5AMWait) {
@@ -2455,7 +2455,7 @@ RunNewSequence(bypassConfirm := false) {
     for action in preActions {
         preMs += CalculateActionMs(action)
     }
-    
+ 
     local normalLastSleep := 10000
     local finalLastSleep := 25000
 
@@ -2470,17 +2470,17 @@ RunNewSequence(bypassConfirm := false) {
         }
     }
     finalLoopMs := oneLoopMs - xActionMs + (finalLastSleep - normalLastSleep)
-    
+ 
     ; 設定全域進度條變數
     global HasPreparationPhase
     HasPreparationPhase := true
-    globalTotalMs := CalculateTotalMs(NewSequenceLoopLimit)
+    globalTotalMs := CalculateTotalMs(NewSequenceLoopLimit, false)
     globalSegmentEnds := [ preMs ]
     Loop NewSequenceLoopLimit - 1 {
         globalSegmentEnds.Push(globalSegmentEnds[globalSegmentEnds.Length] + oneLoopMs)
     }
     globalSegmentEnds.Push(globalSegmentEnds[globalSegmentEnds.Length] + finalLoopMs)
-    
+ 
     DrawDividers()
     sequenceStartTime := A_TickCount
     newLoopStartTime := A_TickCount
@@ -2550,7 +2550,7 @@ RunNewSequence(bypassConfirm := false) {
             isLastLoop := (A_Index == NewSequenceLoopLimit)
 
             for action in loopActions {
-                ; 循環最後一次時，跳過送出 X 鍵 (步驟 15-3)
+                ; 循環最後一次時，跳過按 X 鍵 (步驟 15-3)
                 if (isLastLoop && action.HasOwnProp("key") && action.key == "x") {
                     continue
                 }
@@ -2579,7 +2579,7 @@ RunNewSequence(bypassConfirm := false) {
                 } else if (action.HasOwnProp("dynamicWaitVar")) {
                     holdMs := %action.dynamicWaitVar% * 1000
                     SendInput("{" action.key " Down}")
-                    
+
                     wSuccess := false
                     if (action.HasOwnProp("countdown")) {
                         wSuccess := CountdownSleep(holdMs, action.tip)
@@ -2587,14 +2587,14 @@ RunNewSequence(bypassConfirm := false) {
                         ShowTip(action.tip)
                         wSuccess := SleepAndCheck(holdMs)
                     }
-                    
+
                     ShowTip("釋放 " action.key " 鍵")
                     if (action.key == "w") {
                         ForceReleaseW_Hardware()
                     } else {
                         SendInput("{" action.key " Up}")
                     }
-                    
+
                     if (!wSuccess) {
                         loopBreak := true
                         break
@@ -2648,11 +2648,11 @@ RunBuyCarSequence() {
     isBuyCarRunning := true
 
     staticActions := [
-        { key: "Space", press: 250, wait: 500, tip: "1. 買車 送出 Space (250ms)" },
-        { key: "Down", press: 250, wait: 500, tip: "2. 確定 送出 ⬇ (250ms)" },
-        { key: "Enter", press: 250, wait: 500, tip: "3. 送出 ⏎ (1/3)" },
-        { key: "Enter", press: 250, wait: 500, tip: "4. 送出 ⏎ (2/3)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "5. 送出 ⏎ (3/3)" }
+        { key: "Space", press: 250, wait: 500, tip: "1. 買車 按 Space (250ms)" },
+        { key: "Down", press: 250, wait: 500, tip: "2. 確定 按 ⬇ (250ms)" },
+        { key: "Enter", press: 250, wait: 500, tip: "3. 按 ⏎ (1/3)" },
+        { key: "Enter", press: 250, wait: 500, tip: "4. 按 ⏎ (2/3)" },
+        { key: "Enter", press: 250, wait: 1000, tip: "5. 按 ⏎ (3/3)" }
     ]
 
     CalculateTotalMs(mfgUp := BuyCarMfgUp, mfgDown := BuyCarMfgDown, mfgLeft := BuyCarMfgLeft, mfgRight := BuyCarMfgRight, selUp := BuyCarSelUp, selDown := BuyCarSelDown, selLeft := BuyCarSelLeft, selRight := BuyCarSelRight) {
@@ -2667,7 +2667,7 @@ RunBuyCarSequence() {
         totalMs += selLeft * 750
         totalMs += selRight * 750
         totalMs += 750 ; 車廠 Enter 鍵時間
-        
+
         for action in staticActions {
             if (action.HasOwnProp("sleep")) {
                 totalMs += action.sleep
@@ -2705,7 +2705,7 @@ RunBuyCarSequence() {
         { name: "選車 往右(格數)", varRef: &BuyCarSelRight, range: "0-4" }
     ]
     timeStr := recalcFn(BuyCarLoopLimit, BuyCarMfgUp, BuyCarMfgDown, BuyCarMfgLeft, BuyCarMfgRight, BuyCarSelUp, BuyCarSelDown, BuyCarSelLeft, BuyCarSelRight)
-    
+ 
     isConfirming := true
     confirmed := ShowConfirmDialog("買車行程 🚗", timeStr, &BuyCarLoopLimit, recalcFn, extraParams, "BuyCarLoopLimit")
     isConfirming := false
@@ -2731,7 +2731,7 @@ RunBuyCarSequence() {
         }
     }
 
-        global HasPreparationPhase
+    global HasPreparationPhase
     HasPreparationPhase := false
     globalTotalMs := BuyCarLoopLimit * BuyCarTotalMs
     globalSegmentEnds := []
@@ -2795,9 +2795,173 @@ RunBuyCarSequence() {
     StopGasAndClean()
 }
 
+UpdateLoopProgress() {
+    global isSequenceRunning, sequenceStartTime, globalTotalMs, PreProgressBar, ProgressBar, ProgressText, currentStepText, HasPreparationPhase, globalSegmentEnds, MyGui
+    static lastPreVal := -1
+    static lastLoopVal := -1
+    
+    if (!isSequenceRunning) {
+        SetTimer(UpdateLoopProgress, 0)
+        return
+    }
+
+    elapsedTotal := A_TickCount - sequenceStartTime
+    if (elapsedTotal < 200) {
+        lastPreVal := -1
+        lastLoopVal := -1
+    }
+    
+    if (HasPreparationPhase) {
+        preparationMs := globalSegmentEnds[1]
+        if (elapsedTotal < preparationMs) {
+            percentPre := Integer(Min(10000, Max(0, (elapsedTotal / preparationMs) * 10000)))
+            percentLoops := 0
+        } else {
+            percentPre := 10000
+            loopsTotalMs := globalTotalMs - preparationMs
+            elapsedLoops := elapsedTotal - preparationMs
+            percentLoops := Integer(Min(10000, Max(0, (elapsedLoops / loopsTotalMs) * 10000)))
+        }
+        
+        newPreVal := Integer(percentPre * 30 / 10000)
+        newLoopVal := Integer(percentLoops * 580 / 10000)
+        if (newPreVal != lastPreVal || newLoopVal != lastLoopVal) {
+            DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
+            PreProgressBar.Value := percentPre
+            ProgressBar.Value := percentLoops
+            lastPreVal := newPreVal
+            lastLoopVal := newLoopVal
+            if (ProgressText)
+                ProgressText.Redraw()
+            DllCall("LockWindowUpdate", "Ptr", 0)
+        }
+    } else {
+        percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+        newLoopVal := Integer(percent * 610 / 10000)
+        if (newLoopVal != lastLoopVal) {
+            DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
+            ProgressBar.Value := percent
+            lastLoopVal := newLoopVal
+            if (ProgressText)
+                ProgressText.Redraw()
+            DllCall("LockWindowUpdate", "Ptr", 0)
+        }
+    }
+    ShowTip(currentStepText)
+}
+
+UpdateNewLoopProgress() {
+    global isNewSequenceRunning, sequenceStartTime, globalTotalMs, PreProgressBar, ProgressBar, ProgressText, currentStepText, HasPreparationPhase, globalSegmentEnds, MyGui
+    static lastPreVal := -1
+    static lastLoopVal := -1
+
+    if (!isNewSequenceRunning) {
+        SetTimer(UpdateNewLoopProgress, 0)
+        return
+    }
+
+    elapsedTotal := A_TickCount - sequenceStartTime
+    if (elapsedTotal < 200) {
+        lastPreVal := -1
+        lastLoopVal := -1
+    }
+  
+    if (HasPreparationPhase) {
+        preparationMs := globalSegmentEnds[1]
+        if (elapsedTotal < preparationMs) {
+            percentPre := Integer(Min(10000, Max(0, (elapsedTotal / preparationMs) * 10000)))
+            percentLoops := 0
+        } else {
+            percentPre := 10000
+            loopsTotalMs := globalTotalMs - preparationMs
+            elapsedLoops := elapsedTotal - preparationMs
+            percentLoops := Integer(Min(10000, Max(0, (elapsedLoops / loopsTotalMs) * 10000)))
+        }
+
+        newPreVal := Integer(percentPre * 30 / 10000)
+        newLoopVal := Integer(percentLoops * 580 / 10000)
+        if (newPreVal != lastPreVal || newLoopVal != lastLoopVal) {
+            DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
+            PreProgressBar.Value := percentPre
+            ProgressBar.Value := percentLoops
+            lastPreVal := newPreVal
+            lastLoopVal := newLoopVal
+            if (ProgressText)
+                ProgressText.Redraw()
+            DllCall("LockWindowUpdate", "Ptr", 0)
+        }
+    } else {
+        percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+        newLoopVal := Integer(percent * 610 / 10000)
+        if (newLoopVal != lastLoopVal) {
+            DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
+            ProgressBar.Value := percent
+            lastLoopVal := newLoopVal
+            if (ProgressText)
+                ProgressText.Redraw()
+            DllCall("LockWindowUpdate", "Ptr", 0)
+        }
+    }
+    ShowTip(currentStepText)
+}
+
+UpdateBuyCarLoopProgress() {
+    global isBuyCarRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText, MyGui
+    static lastLoopVal := -1
+
+    if (!isBuyCarRunning) {
+        SetTimer(UpdateBuyCarLoopProgress, 0)
+        return
+    }
+
+    elapsedTotal := A_TickCount - sequenceStartTime
+    if (elapsedTotal < 200) {
+        lastLoopVal := -1
+    }
+    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+    newLoopVal := Integer(percent * 610 / 10000)
+
+    if (newLoopVal != lastLoopVal) {
+        DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
+        ProgressBar.Value := percent
+        lastLoopVal := newLoopVal
+        if (ProgressText)
+            ProgressText.Redraw()
+        DllCall("LockWindowUpdate", "Ptr", 0)
+    }
+    ShowTip(currentStepText)
+}
+
+UpdateRivalLoopProgress() {
+    global isRivalRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText, MyGui
+    static lastLoopVal := -1
+
+    if (!isRivalRunning) {
+        SetTimer(UpdateRivalLoopProgress, 0)
+        return
+    }
+
+    elapsedTotal := A_TickCount - sequenceStartTime
+    if (elapsedTotal < 200) {
+        lastLoopVal := -1
+    }
+    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+    newLoopVal := Integer(percent * 610 / 10000)
+
+    if (newLoopVal != lastLoopVal) {
+        DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
+        ProgressBar.Value := percent
+        lastLoopVal := newLoopVal
+        if (ProgressText)
+            ProgressText.Redraw()
+        DllCall("LockWindowUpdate", "Ptr", 0)
+    }
+    ShowTip(currentStepText)
+}
+
 InfiniteGasLoop() {
     global isGasOn, GameTitle, MyGui
-    
+ 
     if WinExist(GameTitle) {
         WinActivate(GameTitle)
         WinWaitActive(GameTitle, , 2)
@@ -2904,144 +3068,13 @@ StopGasAndClean() {
     ForceReleaseW_Hardware()
 }
 
-UpdateLoopProgress() {
-    global isSequenceRunning, sequenceStartTime, globalTotalMs, PreProgressBar, ProgressBar, ProgressText, currentStepText, HasPreparationPhase, globalSegmentEnds
-    static lastPercent := -1
-    
-    if (!isSequenceRunning) {
-        SetTimer(UpdateLoopProgress, 0)
-        lastPercent := -1
-        return
-    }
-
-    elapsedTotal := A_TickCount - sequenceStartTime
-    
-    if (HasPreparationPhase) {
-        preparationMs := globalSegmentEnds[1]
-        if (elapsedTotal < preparationMs) {
-            percentPre := Integer(Min(10000, Max(0, (elapsedTotal / preparationMs) * 10000)))
-            percentLoops := 0
-        } else {
-            percentPre := 10000
-            loopsTotalMs := globalTotalMs - preparationMs
-            elapsedLoops := elapsedTotal - preparationMs
-            percentLoops := Integer(Min(10000, Max(0, (elapsedLoops / loopsTotalMs) * 10000)))
-        }
-        
-        combinedPercent := percentPre + percentLoops
-        if (combinedPercent != lastPercent) {
-            PreProgressBar.Value := percentPre
-            ProgressBar.Value := percentLoops
-            lastPercent := combinedPercent
-            if (ProgressText)
-                ProgressText.Redraw()
-        }
-    } else {
-        percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
-        if (percent != lastPercent) {
-            ProgressBar.Value := percent
-            lastPercent := percent
-            if (ProgressText)
-                ProgressText.Redraw()
-        }
-    }
-    ShowTip(currentStepText)
-}
-
-UpdateNewLoopProgress() {
-    global isNewSequenceRunning, sequenceStartTime, globalTotalMs, PreProgressBar, ProgressBar, ProgressText, currentStepText, HasPreparationPhase, globalSegmentEnds
-    static lastPercent := -1
-
-    if (!isNewSequenceRunning) {
-        SetTimer(UpdateNewLoopProgress, 0)
-        lastPercent := -1
-        return
-    }
-
-    elapsedTotal := A_TickCount - sequenceStartTime
-    
-    if (HasPreparationPhase) {
-        preparationMs := globalSegmentEnds[1]
-        if (elapsedTotal < preparationMs) {
-            percentPre := Integer(Min(10000, Max(0, (elapsedTotal / preparationMs) * 10000)))
-            percentLoops := 0
-        } else {
-            percentPre := 10000
-            loopsTotalMs := globalTotalMs - preparationMs
-            elapsedLoops := elapsedTotal - preparationMs
-            percentLoops := Integer(Min(10000, Max(0, (elapsedLoops / loopsTotalMs) * 10000)))
-        }
-        
-        combinedPercent := percentPre + percentLoops
-        if (combinedPercent != lastPercent) {
-            PreProgressBar.Value := percentPre
-            ProgressBar.Value := percentLoops
-            lastPercent := combinedPercent
-            if (ProgressText)
-                ProgressText.Redraw()
-        }
-    } else {
-        percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
-        if (percent != lastPercent) {
-            ProgressBar.Value := percent
-            lastPercent := percent
-            if (ProgressText)
-                ProgressText.Redraw()
-        }
-    }
-    ShowTip(currentStepText)
-}
-
-UpdateBuyCarLoopProgress() {
-    global isBuyCarRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText
-    static lastPercent := -1
-
-    if (!isBuyCarRunning) {
-        SetTimer(UpdateBuyCarLoopProgress, 0)
-        lastPercent := -1
-        return
-    }
-
-    elapsedTotal := A_TickCount - sequenceStartTime
-    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
-
-    if (percent != lastPercent) {
-        ProgressBar.Value := percent
-        lastPercent := percent
-        if (ProgressText)
-            ProgressText.Redraw()
-    }
-    ShowTip(currentStepText)
-}
-
-UpdateRivalLoopProgress() {
-    global isRivalRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText
-    static lastPercent := -1
-
-    if (!isRivalRunning) {
-        SetTimer(UpdateRivalLoopProgress, 0)
-        lastPercent := -1
-        return
-    }
-
-    elapsedTotal := A_TickCount - sequenceStartTime
-    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
-
-    if (percent != lastPercent) {
-        ProgressBar.Value := percent
-        lastPercent := percent
-        if (ProgressText)
-            ProgressText.Redraw()
-    }
-    ShowTip(currentStepText)
-}
 
 
 
 
 
 ShowTip(stepText) {
-    global GuiX, GuiY, currentStepText, ProgressText, sequenceStartTime, sequenceTotalSec
+    global GuiX, GuiY, currentStepText, ProgressText, sequenceStartTime, sequenceTotalSec, MyGui
     global isSequenceRunning, loopStartTime, TotalMs, currentLoopItem, LoopCountLimit
     global isNewSequenceRunning, newLoopStartTime, NewSequenceTotalMs, currentNewLoopItem, NewSequenceLoopLimit
     global isBuyCarRunning, buyCarStartTime, BuyCarTotalMs, currentBuyCarLoopItem, BuyCarLoopLimit
@@ -3074,39 +3107,39 @@ ShowTip(stepText) {
         cur := currentLoopItem, limit := LoopCountLimit
         loopIndex := (cur > 0) ? cur : 1
         currentLoopTotalMs := TotalMs + ((loopIndex < limit) ? 1500 : 0)
-        
+
         elapsedInCurrent := Min(A_TickCount - loopStartTime, currentLoopTotalMs)
         loopRatio := elapsedInCurrent / currentLoopTotalMs
         remainMs := (limit - loopIndex) * currentLoopTotalMs + (currentLoopTotalMs - elapsedInCurrent)
         percent := ((loopIndex - 1) / limit * 100) + (loopRatio * (100 / limit))
-        
+
     } else if (isNewSequenceRunning) {
         cur := currentNewLoopItem, limit := NewSequenceLoopLimit
         loopIndex := (cur > 0) ? cur : 1
-        
+
         elapsedInCurrent := Min(A_TickCount - newLoopStartTime, NewSequenceTotalMs)
         loopRatio := elapsedInCurrent / NewSequenceTotalMs
         remainMs := (limit - loopIndex) * NewSequenceTotalMs + (NewSequenceTotalMs - elapsedInCurrent)
         percent := ((loopIndex - 1) / limit * 100) + (loopRatio * (100 / limit))
-        
+
     } else if (isBuyCarRunning) {
         cur := currentBuyCarLoopItem, limit := BuyCarLoopLimit
         loopIndex := (cur > 0) ? cur : 1
-        
+
         elapsedInCurrent := Min(A_TickCount - buyCarStartTime, BuyCarTotalMs)
         loopRatio := elapsedInCurrent / BuyCarTotalMs
         remainMs := (limit - loopIndex) * BuyCarTotalMs + (BuyCarTotalMs - elapsedInCurrent)
         percent := ((loopIndex - 1) / limit * 100) + (loopRatio * (100 / limit))
-        
+
     } else if (isRivalRunning) {
         cur := currentRivalLoopItem, limit := RivalLoopLimit
         loopIndex := (cur > 0) ? cur : 1
-        
+
         elapsedInCurrent := Min(A_TickCount - rivalLoopStartTime, RivalTotalMs)
         loopRatio := elapsedInCurrent / RivalTotalMs
         remainMs := (limit - loopIndex) * RivalTotalMs + (RivalTotalMs - elapsedInCurrent)
         percent := ((loopIndex - 1) / limit * 100) + (loopRatio * (100 / limit))
-        
+
     } else {
         CoordMode("ToolTip", "Screen")
         ToolTip(stepText, GuiX + 155, GuiY + 5)
@@ -3123,9 +3156,11 @@ ShowTip(stepText) {
     infoText := prefix "[" cur "/" limit "]" percent "％" countdownStr "➤" stepText
 
     if (ProgressText && infoText != lastInfoText) {
+        DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
         ProgressText.Value := infoText
         lastInfoText := infoText
         ProgressText.Redraw()
+        DllCall("LockWindowUpdate", "Ptr", 0)
     }
     ToolTip()
 }
@@ -3147,37 +3182,37 @@ RunRivalSequence() {
     isRivalRunning := true
 
     staticActions := [
-        { key: "Esc", press: 250, wait: 1000, tip: "1. 送出 Esc" },
-        { key: "PgDn", press: 250, wait: 500, tip: "2. 送出 PgDn (1/3)" },
-        { key: "PgDn", press: 250, wait: 500, tip: "3. 送出 PgDn (2/3)" },
-        { key: "PgDn", press: 250, wait: 500, tip: "4. 送出 PgDn (3/3)" },
-        { key: "Down", press: 250, wait: 500, tip: "5. 送出 ⬇" },
-        { key: "Enter", press: 250, wait: 1000, tip: "6. 送出 ⏎ (1/3)" },
-        { key: "Enter", press: 250, wait: 2000, tip: "7. 送出 ⏎ (2/3)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "8. 送出 ⏎ (3/3)" },
-        { key: "Left", press: 250, wait: 500, tip: "9. 送出 ⬅ (1/2)" },
-        { key: "Left", press: 250, wait: 500, tip: "10. 送出 ⬅ (2/2)" },
-        { key: "Enter", press: 250, wait: 1500, tip: "11. 送出 ⏎" },
-        { key: "Left", press: 250, wait: 500, tip: "12. 送出 ⬅" },
+        { key: "Esc", press: 250, wait: 1000, tip: "1. 按 Esc" },
+        { key: "PgDn", press: 250, wait: 500, tip: "2. 按 PgDn (1/3)" },
+        { key: "PgDn", press: 250, wait: 500, tip: "3. 按 PgDn (2/3)" },
+        { key: "PgDn", press: 250, wait: 500, tip: "4. 按 PgDn (3/3)" },
+        { key: "Down", press: 250, wait: 500, tip: "5. 按 ⬇" },
+        { key: "Enter", press: 250, wait: 1000, tip: "6. 按 ⏎ (1/3)" },
+        { key: "Enter", press: 250, wait: 2000, tip: "7. 按 ⏎ (2/3)" },
+        { key: "Enter", press: 250, wait: 1000, tip: "8. 按 ⏎ (3/3)" },
+        { key: "Left", press: 250, wait: 500, tip: "9. 按 ⬅ (1/2)" },
+        { key: "Left", press: 250, wait: 500, tip: "10. 按 ⬅ (2/2)" },
+        { key: "Enter", press: 250, wait: 1500, tip: "11. 按 ⏎" },
+        { key: "Left", press: 250, wait: 500, tip: "12. 按 ⬅" },
         { sleepVar: "RivalLoadSec", countdown: true, tip: "篩選前等待" },
-        { key: "y", press: 250, wait: 500, tip: "13. 送出 Y" },
+        { key: "y", press: 250, wait: 500, tip: "13. 按 Y" },
         { sleepVar: "RivalLoadSec", countdown: true, tip: "14. 等待載入" },
-        { key: "Enter", press: 250, wait: 500, tip: "15. 送出 ⏎" },
+        { key: "Enter", press: 250, wait: 500, tip: "15. 按 ⏎" },
         { sleepVar: "RivalLoadSec", countdown: true, tip: "16. 等待載入" },
-        { key: "Enter", press: 250, wait: 500, tip: "17. 送出 ⏎" },
-        { key: "y", press: 250, wait: 500, tip: "18. 送出 Y" },
-        { key: "Enter", press: 250, wait: 500, tip: "19. 送出 ⏎" },
-        { key: "Esc", press: 250, wait: 500, tip: "20. 送出 Esc" },
-        { key: "Enter", press: 250, wait: 500, tip: "21. 送出 ⏎" },
+        { key: "Enter", press: 250, wait: 500, tip: "17. 按 ⏎" },
+        { key: "y", press: 250, wait: 500, tip: "18. 按 Y" },
+        { key: "Enter", press: 250, wait: 500, tip: "19. 按 ⏎" },
+        { key: "Esc", press: 250, wait: 500, tip: "20. 按 Esc" },
+        { key: "Enter", press: 250, wait: 500, tip: "21. 按 ⏎" },
         { sleepVar: "RivalTransitionSec", countdown: true, tip: "22. 等待過場" },
-        { key: "Enter", press: 250, wait: 500, tip: "23. 送出 ⏎" },
+        { key: "Enter", press: 250, wait: 500, tip: "23. 按 ⏎" },
         { key: "w", dynamicWaitVar: "RivalThrottleSec", wait: 500, countdown: true, tip: "24. 按住 W 設定秒數" },
-        { key: "Esc", press: 250, wait: 500, tip: "25. 送出 Esc" },
-        { key: "Right", press: 250, wait: 500, tip: "26. 送出 ⮕" },
-        { key: "Enter", press: 250, wait: 500, tip: "27. 送出 ⏎ (1/2)" },
-        { key: "Enter", press: 250, wait: 500, tip: "27. 送出 ⏎ (2/2)" },
+        { key: "Esc", press: 250, wait: 500, tip: "25. 按 Esc" },
+        { key: "Right", press: 250, wait: 500, tip: "26. 按 ⮕" },
+        { key: "Enter", press: 250, wait: 500, tip: "27. 按 ⏎ (1/2)" },
+        { key: "Enter", press: 250, wait: 500, tip: "27. 按 ⏎ (2/2)" },
         { sleepVar: "RivalLoadSec", countdown: true, tip: "28. 等待載入" },
-        { key: "Enter", press: 250, wait: 500, tip: "29. 送出 ⏎" },
+        { key: "Enter", press: 250, wait: 500, tip: "29. 按 ⏎" },
         { sleepRange: [30, 40], countdown: true, tip: "29. 等待 {1} 秒" }
     ]
 
@@ -3244,7 +3279,7 @@ RunRivalSequence() {
         FormatTimeDuration(Ceil((limit * dynamicTotalMs) / 1000))
     )
     timeStr := recalcFn(RivalLoopLimit, RivalThrottleSec, RivalLoadSec, RivalTransitionSec, RivalEndHour, RivalEndMin)
-    
+ 
     extraParams := [
         { varRef: &RivalThrottleSec, name: "油門時間(分:秒)", range: "10-1800" },
         { varRef: &RivalLoadSec, name: "等待載入(秒)", range: "1-30" },
@@ -3338,7 +3373,7 @@ RunRivalSequence() {
             } else if (action.HasOwnProp("dynamicWaitVar")) {
                 holdMs := %action.dynamicWaitVar% * 1000
                 SendInput("{" action.key " Down}")
-                
+ 
                 wSuccess := false
                 if (action.HasOwnProp("countdown")) {
                     wSuccess := CountdownSleep(holdMs, action.tip)
@@ -3346,14 +3381,14 @@ RunRivalSequence() {
                     ShowTip(action.tip)
                     wSuccess := SleepAndCheck(holdMs)
                 }
-                
+ 
                 ShowTip("釋放 " action.key " 鍵")
                 if (action.key == "w") {
                     ForceReleaseW_Hardware()
                 } else {
                     SendInput("{" action.key " Up}")
                 }
-                
+ 
                 if (!wSuccess) {
                     loopBreak := true
                     break
@@ -3422,7 +3457,7 @@ ForceReleaseW_Hardware() {
 
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
     global MyGui, GuiBtns, isGasOn, isSequenceRunning, isEnterSpamRunning, isNewSequenceRunning, isBuyCarRunning, CurrentConfirmUpdateFn, isRivalRunning
-    
+ 
     try {
         cls := WinGetClass(hwnd)
     } catch {
@@ -3438,25 +3473,25 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
             MouseGetPos(&mX, &mY)
             relativeX := mX - (winX + cX)
             currVal := ctrlObj.Value
-            
+
             ; 取得控制點的精確像素範圍 (TBM_GETTHUMBRECT = 0x0419)
             thumbRect := Buffer(16, 0)
             SendMessage(0x0419, 0, thumbRect, hwnd)
             tLeft := NumGet(thumbRect, 0, "Int")
             tRight := NumGet(thumbRect, 8, "Int")
-            
+
             ; 如果點擊在控制點上，交由系統預設處理（允許拖曳）
             if (relativeX >= tLeft && relativeX <= tRight) {
                 return
             }
-            
+
             ; 取得軌道精確像素範圍 (TBM_GETCHANNELRECT = 0x041A)
             chanRect := Buffer(16, 0)
             SendMessage(0x041A, 0, chanRect, hwnd)
             cLeft := NumGet(chanRect, 0, "Int")
             cRight := NumGet(chanRect, 8, "Int")
             channelWidth := cRight - cLeft
-            
+
             if (channelWidth > 0) {
                 minVal := SendMessage(0x0401, 0, 0, hwnd)
                 maxVal := SendMessage(0x0402, 0, 0, hwnd)
@@ -3478,7 +3513,7 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
                     if (CurrentConfirmUpdateFn) {
                         CurrentConfirmUpdateFn(ctrlObj)
                     }
-                    
+
                     ; 只要滑鼠左鍵沒放開，就能繼續拖移控制點
                     startX := mX
                     isDragging := false
@@ -3569,16 +3604,16 @@ SendKey(keyName, pressDuration, waitDuration, &isRunning) {
     if (!isRunning) {
         return false
     }
-    
+ 
     ; 按下按鍵
     Send("{" keyName " down}")
     Sleep(pressDuration)
-    
+ 
     ; 鬆開按鍵
     Send("{" keyName " up}")
     if (waitDuration > 0) {
         Sleep(waitDuration)
     }
-    
+ 
     return isRunning
 }
