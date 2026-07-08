@@ -1,6 +1,6 @@
 ; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
-; 版本: 1.4.2
+; 版本: 1.4.5
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
 ;       採用橫向懸浮按鈕 UI，並完美支援 Xbox 手把與鍵盤的雙向控制及狀態回饋。
 ; =================================================================
@@ -46,6 +46,7 @@ global RivalTransitionSec := 50   ; 勁敵刷錢等待過場時間（秒）
 global RivalEndHour := 0          ; 勁敵刷錢預計結束時間（時）
 global AutoLoopEnabled := false    ; 自動雙循環開關
 global AutoLoopCount := 0          ; 自動雙循環當前次數
+global StopAfterCurrentLoop := false ; 於當前循環結束後停止開關
 global RivalEndMin := 0           ; 勁敵刷錢預計結束時間（分）
 global Enable5AMWait :=false       ; 啟用早上五點路由器重啟等待與自動確認
 
@@ -253,6 +254,25 @@ for idx, cfg in btnConfigs {
     GuiBtns.Push(btn)
 }
 
+global SkipBtn := MyGui.Add("Text", "cWhite x-100 y-100 w40 h34 Center +0x200 +BackgroundTrans -Wrap +Hidden", "⏭")
+OnSkipClick(*) {
+    global StopAfterCurrentLoop, SkipBtn
+    if (StopAfterCurrentLoop) {
+        StopAfterCurrentLoop := false
+        SkipBtn.Opt("cWhite")
+        SkipBtn.Redraw()
+        ToolTip("⏭ 已取消，將繼續循環行程")
+        SetTimer(() => ToolTip(), -2000)
+    } else {
+        StopAfterCurrentLoop := true
+        SkipBtn.Opt("cRed")
+        SkipBtn.Redraw()
+        ToolTip("⏭ 將於本輪結束後自動停止...")
+        SetTimer(() => ToolTip(), -2000)
+    }
+}
+SkipBtn.OnEvent("Click", OnSkipClick)
+ 
 ; 💡 進度條位置
 global PreProgressBar := MyGui.Add("Progress", "x45 y3 w30 h24 Backgroundffffff cYellow Range0-10000 +Hidden", 0)
 global ProgressBar := MyGui.Add("Progress", "x45 y3 w" . ProgressBarWidth . " h24 Backgroundffffff cYellow Range0-10000", 0)
@@ -269,7 +289,7 @@ global ProgressText := MyGui.Add("Text", "cBlack x45 y1 w" . ProgressBarWidth . 
 
 ; 定義 UI 切換輔助函數
 UpdateUiRunningState(btnName) {
-    global GuiBtns, MyGui, GuiX, GuiY, GuiH, GuiOpacity, PreProgressBar, ProgressBar, ProgressText, HasPreparationPhase
+    global GuiBtns, SkipBtn, MyGui, GuiX, GuiY, GuiH, GuiOpacity, PreProgressBar, ProgressBar, ProgressText, HasPreparationPhase, StopAfterCurrentLoop
     runningIdx := GetBtnIndex(btnName)
     for idx, btn in GuiBtns {
         if (idx == runningIdx) {
@@ -285,18 +305,34 @@ UpdateUiRunningState(btnName) {
         PreProgressBar.Visible := false
         ProgressBar.Visible := false
         ProgressText.Visible := false
-        MyGui.Show("X" GuiX " Y" GuiY " W40 h" GuiH " NoActivate")
-    } else {
-        if (HasPreparationPhase) {
-            PreProgressBar.Move(45, 3, 30, 24)
-            PreProgressBar.Visible := true
-            ProgressBar.Move(75, 3, 580, 24)
-            ProgressBar.Visible := true
-        } else {
-            PreProgressBar.Visible := false
-            ProgressBar.Move(45, 3, 610, 24)
-            ProgressBar.Visible := true
+        if (SkipBtn) {
+            SkipBtn.Visible := false
+            SkipBtn.Move(-100, -100)
         }
+        MyGui.Show("X" GuiX " Y" GuiY " W40 h" GuiH " NoActivate")
+    } else if (btnName == "newSeq" || btnName == "seq") {
+        if (StopAfterCurrentLoop) {
+            SkipBtn.Opt("cRed")
+        } else {
+            SkipBtn.Opt("cWhite")
+        }
+        SkipBtn.Visible := true
+        SkipBtn.Move(40, -2)
+        PreProgressBar.Visible := false
+        ProgressBar.Move(85, 3, 570, 24)
+        ProgressBar.Visible := true
+        ProgressText.Move(85, 1, 570, 28)
+        ProgressText.Visible := true
+        MyGui.Show("X" GuiX " Y" GuiY " W660 h" GuiH " NoActivate")
+    } else {
+        if (SkipBtn) {
+            SkipBtn.Visible := false
+            SkipBtn.Move(-100, -100)
+        }
+        PreProgressBar.Visible := false
+        ProgressBar.Move(45, 3, 610, 24)
+        ProgressBar.Visible := true
+        ProgressText.Move(45, 1, 610, 28)
         ProgressText.Visible := true
         MyGui.Show("X" GuiX " Y" GuiY " W660 h" GuiH " NoActivate")
     }
@@ -304,10 +340,14 @@ UpdateUiRunningState(btnName) {
 }
 
 ResetUiToNormal() {
-    global GuiBtns, MyGui, GuiX, GuiY, GuiH, GuiOpacity, PreProgressBar, ProgressBar, ProgressText, GameTitle, btnConfigs
+    global GuiBtns, SkipBtn, MyGui, GuiX, GuiY, GuiH, GuiOpacity, PreProgressBar, ProgressBar, ProgressText, GameTitle, btnConfigs
     PreProgressBar.Visible := false
     ProgressBar.Visible := false
     ProgressText.Visible := false
+    ProgressText.Move(45, 1, 610, 28)
+    SkipBtn.Visible := false
+    SkipBtn.Move(-100, -100)
+    StopAfterCurrentLoop := false
  
     currentX := 0
     for idx, btn in GuiBtns {
@@ -344,76 +384,45 @@ SetTimer(WatchJoystick, 60)
 ; --- 【進度條動態分格管理】 ---
 ; =================================================================
 DrawDividers() {
-    global DividerCtrls, IsSimplifyDividers, globalSegmentEnds, globalTotalMs, ProgressBarWidth, MyGui, HasPreparationPhase
+    global DividerCtrls, IsSimplifyDividers, globalSegmentEnds, globalTotalMs, MyGui, isNewSequenceRunning, isSequenceRunning
     ClearDividers()
- 
+    
     if (globalSegmentEnds.Length == 0 || globalTotalMs <= 0) {
         return
     }
 
     xPositions := []
- 
-    if (HasPreparationPhase) {
-        preparationMs := globalSegmentEnds[1]
-        loopsTotalMs := globalTotalMs - preparationMs
-        loopProgressBarWidth := 580
+    isDoubleLoopSeq := isNewSequenceRunning || isSequenceRunning
+    startPos := isDoubleLoopSeq ? 85 : 45
+    progressBarWidthVal := isDoubleLoopSeq ? 570 : 610
+    
+    if (globalSegmentEnds.Length > 1) {
+        preEndX := startPos + (globalSegmentEnds[1] / globalTotalMs) * progressBarWidthVal
+        xPositions.Push(preEndX)
+    }
 
-        ; 💡 第一個分割點 (前置結束) - 用於分開前置和循環
-        xPositions.Push(75)
-
-        loopCount := globalSegmentEnds.Length - 1
-        if (IsSimplifyDividers && loopCount >= 20) {
-            for idx, endTime in globalSegmentEnds {
-                if (idx == 1 || idx == globalSegmentEnds.Length) {
-                    continue
-                }
-                loopIdx := idx - 1
-                if (Mod(loopIdx, 10) == 0) {
-                    xPos := 75 + ((endTime - preparationMs) / loopsTotalMs) * loopProgressBarWidth
-                    xPositions.Push(xPos)
-                }
+    loopCount := globalSegmentEnds.Length - 1
+    if (IsSimplifyDividers && loopCount >= 20) {
+        for idx, endTime in globalSegmentEnds {
+            if (idx == 1 || idx == globalSegmentEnds.Length) {
+                continue
             }
-        } else {
-            for idx, endTime in globalSegmentEnds {
-                if (idx == globalSegmentEnds.Length) {
-                    continue
-                }
-                if (idx == 1) {
-                    continue
-                }
-                xPos := 75 + ((endTime - preparationMs) / loopsTotalMs) * loopProgressBarWidth
+            loopIdx := idx - 1
+            if (Mod(loopIdx, 10) == 0) {
+                xPos := startPos + (endTime / globalTotalMs) * progressBarWidthVal
                 xPositions.Push(xPos)
             }
         }
     } else {
-        if (globalSegmentEnds.Length > 1) {
-            preEndX := 45 + (globalSegmentEnds[1] / globalTotalMs) * ProgressBarWidth
-            xPositions.Push(preEndX)
-        }
-
-        loopCount := globalSegmentEnds.Length - 1
-        if (IsSimplifyDividers && loopCount >= 20) {
-            for idx, endTime in globalSegmentEnds {
-                if (idx == 1 || idx == globalSegmentEnds.Length) {
-                    continue
-                }
-                loopIdx := idx - 1
-                if (Mod(loopIdx, 10) == 0) {
-                    xPos := 45 + (endTime / globalTotalMs) * ProgressBarWidth
-                    xPositions.Push(xPos)
-                }
+        for idx, endTime in globalSegmentEnds {
+            if (idx == globalSegmentEnds.Length) {
+                continue
             }
-        } else {
-            for idx, endTime in globalSegmentEnds {
-                if (idx == globalSegmentEnds.Length) {
-                    continue
-                }
-                if (idx == 1) {
-                    continue
-                }
-                xPos := 45 + (endTime / globalTotalMs) * ProgressBarWidth
-                xPositions.Push(xPos)
+            if (idx == 1) {
+                continue
             }
+            xPos := startPos + (endTime / globalTotalMs) * progressBarWidthVal
+            xPositions.Push(xPos)
         }
     }
 
@@ -1770,8 +1779,7 @@ RunLButtonSequence(bypassConfirm := false) {
     ; --- 2. 執行買車次數循環 ---
     if (!loopBreak && SkillBuyCarEnabled && LoopCountLimit > 0) {
         Loop LoopCountLimit {
-    
-        currentLoopItem := A_Index
+            currentLoopItem := A_Index
             currentLoopTotalMs := oneBuyLoopMs
             if (!isSequenceRunning || (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
                 loopBreak := true
@@ -1979,7 +1987,7 @@ RunLButtonSequence(bypassConfirm := false) {
         }
     }
     if (!loopBreak) {
-        if (AutoLoopEnabled) {
+        if (AutoLoopEnabled && !StopAfterCurrentLoop) {
             ; 行程全部結束後等待一分鐘 (60 秒)
             sequenceStartTime := A_TickCount
             sequenceTotalSec := 60
@@ -2537,8 +2545,12 @@ RunNewSequence(bypassConfirm := false) {
     if (!loopBreak) {
         currentNewLoopItem := 0
         Loop NewSequenceLoopLimit {
-            if (!isNewSequenceRunning)
+            if (!isNewSequenceRunning || StopAfterCurrentLoop) {
+                if (StopAfterCurrentLoop) {
+                    loopBreak := true
+                }
                 break
+            }
             currentNewLoopItem := A_Index
             newLoopStartTime := A_TickCount
 
@@ -2618,7 +2630,7 @@ RunNewSequence(bypassConfirm := false) {
 
     ; --- 自動雙循環接續判斷 ---
     if (!loopBreak) {
-        if (AutoLoopEnabled) {
+        if (AutoLoopEnabled && !StopAfterCurrentLoop) {
             earnedPoints := Min(999, NewSequenceLoopLimit * 10)
             neededPoints := globalSkillCost
             loopCount := Floor(earnedPoints / neededPoints)
@@ -2796,8 +2808,7 @@ RunBuyCarSequence() {
 }
 
 UpdateLoopProgress() {
-    global isSequenceRunning, sequenceStartTime, globalTotalMs, PreProgressBar, ProgressBar, ProgressText, currentStepText, HasPreparationPhase, globalSegmentEnds, MyGui
-    static lastPreVal := -1
+    global isSequenceRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText, MyGui
     static lastLoopVal := -1
     
     if (!isSequenceRunning) {
@@ -2807,52 +2818,24 @@ UpdateLoopProgress() {
 
     elapsedTotal := A_TickCount - sequenceStartTime
     if (elapsedTotal < 200) {
-        lastPreVal := -1
         lastLoopVal := -1
     }
     
-    if (HasPreparationPhase) {
-        preparationMs := globalSegmentEnds[1]
-        if (elapsedTotal < preparationMs) {
-            percentPre := Integer(Min(10000, Max(0, (elapsedTotal / preparationMs) * 10000)))
-            percentLoops := 0
-        } else {
-            percentPre := 10000
-            loopsTotalMs := globalTotalMs - preparationMs
-            elapsedLoops := elapsedTotal - preparationMs
-            percentLoops := Integer(Min(10000, Max(0, (elapsedLoops / loopsTotalMs) * 10000)))
-        }
-        
-        newPreVal := Integer(percentPre * 30 / 10000)
-        newLoopVal := Integer(percentLoops * 580 / 10000)
-        if (newPreVal != lastPreVal || newLoopVal != lastLoopVal) {
-            DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
-            PreProgressBar.Value := percentPre
-            ProgressBar.Value := percentLoops
-            lastPreVal := newPreVal
-            lastLoopVal := newLoopVal
-            if (ProgressText)
-                ProgressText.Redraw()
-            DllCall("LockWindowUpdate", "Ptr", 0)
-        }
-    } else {
-        percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
-        newLoopVal := Integer(percent * 610 / 10000)
-        if (newLoopVal != lastLoopVal) {
-            DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
-            ProgressBar.Value := percent
-            lastLoopVal := newLoopVal
-            if (ProgressText)
-                ProgressText.Redraw()
-            DllCall("LockWindowUpdate", "Ptr", 0)
-        }
+    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+    newLoopVal := Integer(percent * 570 / 10000)
+    if (newLoopVal != lastLoopVal) {
+        DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
+        ProgressBar.Value := percent
+        lastLoopVal := newLoopVal
+        if (ProgressText)
+            ProgressText.Redraw()
+        DllCall("LockWindowUpdate", "Ptr", 0)
     }
     ShowTip(currentStepText)
 }
 
 UpdateNewLoopProgress() {
-    global isNewSequenceRunning, sequenceStartTime, globalTotalMs, PreProgressBar, ProgressBar, ProgressText, currentStepText, HasPreparationPhase, globalSegmentEnds, MyGui
-    static lastPreVal := -1
+    global isNewSequenceRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText, MyGui
     static lastLoopVal := -1
 
     if (!isNewSequenceRunning) {
@@ -2862,45 +2845,18 @@ UpdateNewLoopProgress() {
 
     elapsedTotal := A_TickCount - sequenceStartTime
     if (elapsedTotal < 200) {
-        lastPreVal := -1
         lastLoopVal := -1
     }
   
-    if (HasPreparationPhase) {
-        preparationMs := globalSegmentEnds[1]
-        if (elapsedTotal < preparationMs) {
-            percentPre := Integer(Min(10000, Max(0, (elapsedTotal / preparationMs) * 10000)))
-            percentLoops := 0
-        } else {
-            percentPre := 10000
-            loopsTotalMs := globalTotalMs - preparationMs
-            elapsedLoops := elapsedTotal - preparationMs
-            percentLoops := Integer(Min(10000, Max(0, (elapsedLoops / loopsTotalMs) * 10000)))
-        }
-
-        newPreVal := Integer(percentPre * 30 / 10000)
-        newLoopVal := Integer(percentLoops * 580 / 10000)
-        if (newPreVal != lastPreVal || newLoopVal != lastLoopVal) {
-            DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
-            PreProgressBar.Value := percentPre
-            ProgressBar.Value := percentLoops
-            lastPreVal := newPreVal
-            lastLoopVal := newLoopVal
-            if (ProgressText)
-                ProgressText.Redraw()
-            DllCall("LockWindowUpdate", "Ptr", 0)
-        }
-    } else {
-        percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
-        newLoopVal := Integer(percent * 610 / 10000)
-        if (newLoopVal != lastLoopVal) {
-            DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
-            ProgressBar.Value := percent
-            lastLoopVal := newLoopVal
-            if (ProgressText)
-                ProgressText.Redraw()
-            DllCall("LockWindowUpdate", "Ptr", 0)
-        }
+    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+    newLoopVal := Integer(percent * 570 / 10000)
+    if (newLoopVal != lastLoopVal) {
+        DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
+        ProgressBar.Value := percent
+        lastLoopVal := newLoopVal
+        if (ProgressText)
+            ProgressText.Redraw()
+        DllCall("LockWindowUpdate", "Ptr", 0)
     }
     ShowTip(currentStepText)
 }
@@ -2919,7 +2875,7 @@ UpdateBuyCarLoopProgress() {
         lastLoopVal := -1
     }
     percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
-    newLoopVal := Integer(percent * 610 / 10000)
+    newLoopVal := Integer(percent * 570 / 10000)
 
     if (newLoopVal != lastLoopVal) {
         DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
@@ -2946,7 +2902,7 @@ UpdateRivalLoopProgress() {
         lastLoopVal := -1
     }
     percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
-    newLoopVal := Integer(percent * 610 / 10000)
+    newLoopVal := Integer(percent * 570 / 10000)
 
     if (newLoopVal != lastLoopVal) {
         DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
@@ -3039,7 +2995,7 @@ CheckEveryHourly() {
 }
 
 StopGasAndClean() {
-    global MyGui, isGasOn, isSequenceRunning, isEnterSpamRunning, isNewSequenceRunning, isBuyCarRunning, ProgressText, PreProgressBar, ProgressBar, GuiX, GuiY, GuiH, currentStepText, isRivalRunning, AutoLoopCount, HasPreparationPhase
+    global MyGui, isGasOn, isSequenceRunning, isEnterSpamRunning, isNewSequenceRunning, isBuyCarRunning, ProgressText, PreProgressBar, ProgressBar, GuiX, GuiY, GuiH, currentStepText, isRivalRunning, AutoLoopCount, HasPreparationPhase, StopAfterCurrentLoop, SkipBtn
 
     isGasOn := false
     isSequenceRunning := false
@@ -3062,6 +3018,12 @@ StopGasAndClean() {
     ShowTip("")
     ClearDividers()
 
+    StopAfterCurrentLoop := false
+    if (SkipBtn) {
+        SkipBtn.Opt("cWhite")
+        SkipBtn.Visible := false
+        SkipBtn.Move(-100, -100)
+    }
     if WinExist("ahk_id " MyGui.Hwnd) {
         ResetUiToNormal()
     }
@@ -3074,7 +3036,7 @@ StopGasAndClean() {
 
 
 ShowTip(stepText) {
-    global GuiX, GuiY, currentStepText, ProgressText, sequenceStartTime, sequenceTotalSec, MyGui
+    global GuiX, GuiY, currentStepText, ProgressText, sequenceStartTime, sequenceTotalSec, MyGui, globalTotalMs
     global isSequenceRunning, loopStartTime, TotalMs, currentLoopItem, LoopCountLimit
     global isNewSequenceRunning, newLoopStartTime, NewSequenceTotalMs, currentNewLoopItem, NewSequenceLoopLimit
     global isBuyCarRunning, buyCarStartTime, BuyCarTotalMs, currentBuyCarLoopItem, BuyCarLoopLimit
@@ -3102,51 +3064,24 @@ ShowTip(stepText) {
 
     currentStepText := stepText
 
-    cur := 0, limit := 0, percent := 0
+    cur := 0, limit := 0
     if (isSequenceRunning) {
         cur := currentLoopItem, limit := LoopCountLimit
-        loopIndex := (cur > 0) ? cur : 1
-        currentLoopTotalMs := TotalMs + ((loopIndex < limit) ? 1500 : 0)
-
-        elapsedInCurrent := Min(A_TickCount - loopStartTime, currentLoopTotalMs)
-        loopRatio := elapsedInCurrent / currentLoopTotalMs
-        remainMs := (limit - loopIndex) * currentLoopTotalMs + (currentLoopTotalMs - elapsedInCurrent)
-        percent := ((loopIndex - 1) / limit * 100) + (loopRatio * (100 / limit))
-
     } else if (isNewSequenceRunning) {
         cur := currentNewLoopItem, limit := NewSequenceLoopLimit
-        loopIndex := (cur > 0) ? cur : 1
-
-        elapsedInCurrent := Min(A_TickCount - newLoopStartTime, NewSequenceTotalMs)
-        loopRatio := elapsedInCurrent / NewSequenceTotalMs
-        remainMs := (limit - loopIndex) * NewSequenceTotalMs + (NewSequenceTotalMs - elapsedInCurrent)
-        percent := ((loopIndex - 1) / limit * 100) + (loopRatio * (100 / limit))
-
     } else if (isBuyCarRunning) {
         cur := currentBuyCarLoopItem, limit := BuyCarLoopLimit
-        loopIndex := (cur > 0) ? cur : 1
-
-        elapsedInCurrent := Min(A_TickCount - buyCarStartTime, BuyCarTotalMs)
-        loopRatio := elapsedInCurrent / BuyCarTotalMs
-        remainMs := (limit - loopIndex) * BuyCarTotalMs + (BuyCarTotalMs - elapsedInCurrent)
-        percent := ((loopIndex - 1) / limit * 100) + (loopRatio * (100 / limit))
-
     } else if (isRivalRunning) {
         cur := currentRivalLoopItem, limit := RivalLoopLimit
-        loopIndex := (cur > 0) ? cur : 1
-
-        elapsedInCurrent := Min(A_TickCount - rivalLoopStartTime, RivalTotalMs)
-        loopRatio := elapsedInCurrent / RivalTotalMs
-        remainMs := (limit - loopIndex) * RivalTotalMs + (RivalTotalMs - elapsedInCurrent)
-        percent := ((loopIndex - 1) / limit * 100) + (loopRatio * (100 / limit))
-
     } else {
         CoordMode("ToolTip", "Screen")
         ToolTip(stepText, GuiX + 155, GuiY + 5)
         return
     }
-
-    percent := Integer(percent)
+ 
+    elapsedTotal := A_TickCount - sequenceStartTime
+    percent := (globalTotalMs > 0) ? (elapsedTotal / globalTotalMs * 100) : 0
+    percent := Min(100, Max(0, Integer(percent)))
 
     elapsedSec := (A_TickCount - sequenceStartTime) / 1000
     remSec := Max(0, Ceil(sequenceTotalSec - elapsedSec))
@@ -3546,11 +3481,6 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
     for btn in GuiBtns {
         if (hwnd == btn.Hwnd) {
             return
-        }
-    }
-    if (hwnd == MyGui.Hwnd || DllCall("GetParent", "Ptr", hwnd) == MyGui.Hwnd) {
-        if (isGasOn || isSequenceRunning || isEnterSpamRunning || isNewSequenceRunning || isBuyCarRunning || isRivalRunning) {
-            StopGasAndClean()
         }
     }
 }
