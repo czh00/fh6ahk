@@ -72,10 +72,10 @@ global IsSimplifyDividers := true ; 簡化進度條格數（簡化後每十次�
 
 ; [圖示顯示設定]
 global ShowIcon_Esc := true          ; 顯示按 Esc 圖示
-global ShowIcon_NewSeq := true       ; 顯示賺技能點圖示
+global ShowIcon_Rival := true        ; 顯示勁敵刷錢圖示
 global ShowIcon_Seq := true          ; 顯示點技能圖示
 global ShowIcon_BuyCar := true       ; 顯示買車圖示
-global ShowIcon_Rival := false        ; 顯示勁敵刷錢圖示
+global ShowIcon_NewSeq := false       ; 顯示賺技能點圖示
 global ShowIcon_Gas := false          ; 顯示油門圖示
 global ShowIcon_EnterSpam := true    ; 顯示連點 Enter 圖示
 global ShowIcon_Exit := true         ; 顯示安全門圖示
@@ -227,7 +227,7 @@ MyGui.BackColor := "010101"
 
 global GuiBtns := []
 global btnConfigs := [
-    { name: "esc",       symbol: "␛", showVar: "ShowIcon_Esc",       fn: (*) => (WinActive(GameTitle) ? Send("{Esc}") : "") },
+    { name: "esc",       symbol: "Esc", showVar: "ShowIcon_Esc",       fn: (*) => (WinActive(GameTitle) ? Send("{Esc}") : "") },
     { name: "newSeq",    symbol: "⚔", showVar: "ShowIcon_NewSeq",    fn: (*) => (isNewSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleNewSequence() : "")) },
     { name: "seq",       symbol: "⚡", showVar: "ShowIcon_Seq",       fn: (*) => (isSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleLButtonSequence() : "")) },
     { name: "buyCar",    symbol: "🚗", showVar: "ShowIcon_BuyCar",    fn: (*) => (isBuyCarRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleBuyCarSequence() : "")) },
@@ -236,6 +236,53 @@ global btnConfigs := [
     { name: "enterSpam", symbol: "🎰", showVar: "ShowIcon_EnterSpam", fn: (*) => (isEnterSpamRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleEnterSpam() : "")) },
     { name: "exit",      symbol: "⏏", showVar: "ShowIcon_Exit",      fn: (*) => (StopGasAndClean(), MyGui.Destroy(), ExitApp()) }
 ]
+
+SortConfigsBySettings() {
+    global btnConfigs
+    try {
+        scriptText := FileRead(A_ScriptFullPath, "UTF-8")
+    } catch {
+        return ; 讀取失敗時使用預設順序
+    }
+    
+    order := []
+    Loop Parse, scriptText, "`n", "`r" {
+        if RegExMatch(A_LoopField, "i)^\s*global\s+(ShowIcon_\w+)\s*:=", &match) {
+            order.Push(match[1])
+        }
+    }
+    
+    if (order.Length == 0)
+        return
+        
+    newConfigs := []
+    for varName in order {
+        for cfg in btnConfigs {
+            if (cfg.showVar = varName) {
+                newConfigs.Push(cfg)
+                break
+            }
+        }
+    }
+    
+    ; 補上可能在設定中漏掉但 btnConfigs 中存在的項目
+    for cfg in btnConfigs {
+        found := false
+        for varName in order {
+            if (cfg.showVar = varName) {
+                found := true
+                break
+            }
+        }
+        if (!found) {
+            newConfigs.Push(cfg)
+        }
+    }
+    
+    btnConfigs := newConfigs
+}
+
+SortConfigsBySettings()
 
 GetBtnIndex(name) {
     global btnConfigs
