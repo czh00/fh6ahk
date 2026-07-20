@@ -39,23 +39,25 @@ global SkillPoints := 987         ; 技能行程技能點數限制
 global SkillBuyCarEnabled := true ; 點技能前先自動購買車輛
 global NewSequenceLoopLimit := 102 ; 賺技能點行程循環次數
 global BuyCarLoopLimit := 0      ; 買車行程循環次數
-global RivalLoopLimit := 10       ; 勁敵刷錢行程循環次數
-global RivalThrottleSec := 460    ; 勁敵刷錢按住油門時間（秒）
+global RivalLoopLimit := 0       ; 勁敵刷錢行程循環次數
+global RivalThrottleSec := 100    ; 勁敵刷錢按住油門時間（秒）
 global RivalLoadSec := 10          ; 勁敵刷錢等待載入時間（秒）
 global RivalTransitionSec := 50   ; 勁敵刷錢等待過場時間（秒）
 global RivalEndHour := 0          ; 勁敵刷錢預計結束時間（時）
 global AutoLoopEnabled := false    ; 自動雙循環開關
 global AutoLoopCount := 0          ; 自動雙循環當前次數
 global StopAfterCurrentLoop := false ; 於當前循環結束後停止開關
-global RivalEndMin := 0           ; 勁敵刷錢預計結束時間（分）
-global Enable5AMWait :=false       ; 啟用早上五點路由器重啟等待與自動確認
+global Enable5AMWait := false       ; 啟用路由器重啟等待與自動確認
+global RebootHour := 5             ; 路由器重啟預估小時
+global RebootWaitMin := 3          ; 路由器重啟等待分鐘
+global IsWaitingReboot := false     ; 標記是否處於重啟等待倒數中
 
 
 ; 【買車行程設定】
 global BuyCarMfgUp := 10            ; 車廠 往上格數 (0-20)
 global BuyCarMfgDown := 0          ; 車廠 往下格數 (0-20)
 global BuyCarMfgLeft := 0          ; 車廠 往左格數 (0-3)
-global BuyCarMfgRight := 0         ; 車廠 往右格數 (0-3)
+global BuyCarMfgRight := 1         ; 車廠 往右格數 (0-3)
 global BuyCarSelUp := 0            ; 選車 往上格數 (0-20)
 global BuyCarSelDown := 1          ; 選車 往下格數 (0-20)
 global BuyCarSelLeft := 2          ; 選車 往左格數 (0-4)
@@ -84,6 +86,8 @@ global ShowIcon_Exit := true         ; 顯示安全門圖示
 global globalSegmentEnds := []
 global globalTotalMs := 1 ; 簡化進度條格數（簡化後每十次畫一格避免太密集）
 global HasPreparationPhase := false
+global currentLoopStartTime := 0
+global currentLoopDuration := 1
 
 ; [動態分格 UI 陣列]
 global DividerCtrls := []
@@ -321,8 +325,9 @@ OnSkipClick(*) {
 SkipBtn.OnEvent("Click", OnSkipClick)
  
 ; 💡 進度條位置
-global PreProgressBar := MyGui.Add("Progress", "x45 y3 w30 h24 Backgroundffffff cYellow Range0-10000 +Hidden", 0)
-global ProgressBar := MyGui.Add("Progress", "x45 y3 w" . ProgressBarWidth . " h24 Backgroundffffff cYellow Range0-10000", 0)
+global PreProgressBar := MyGui.Add("Progress", "x45 y3 w30 h12 Backgroundffffff cYellow Range0-10000 +Hidden", 0)
+global ProgressBar := MyGui.Add("Progress", "x45 y3 w" . ProgressBarWidth . " h12 Backgroundffffff cYellow Range0-10000", 0)
+global LoopProgressBar := MyGui.Add("Progress", "x45 y15 w" . ProgressBarWidth . " h12 Backgroundffffff c80C0FF Range0-10000", 0)
 
 Loop 30 {
     ctrl := MyGui.Add("Text", "y3 w2 h24 +BackgroundAAAAFF +Hidden", "")
@@ -336,7 +341,7 @@ global ProgressText := MyGui.Add("Text", "cBlack x45 y1 w" . ProgressBarWidth . 
 
 ; 定義 UI 切換輔助函數
 UpdateUiRunningState(btnName) {
-    global GuiBtns, SkipBtn, MyGui, GuiX, GuiY, GuiH, GuiOpacity, PreProgressBar, ProgressBar, ProgressText, HasPreparationPhase, StopAfterCurrentLoop
+    global GuiBtns, SkipBtn, MyGui, GuiX, GuiY, GuiH, GuiOpacity, PreProgressBar, ProgressBar, LoopProgressBar, ProgressText, HasPreparationPhase, StopAfterCurrentLoop, RivalLoopLimit
     runningIdx := GetBtnIndex(btnName)
     for idx, btn in GuiBtns {
         if (idx == runningIdx) {
@@ -351,13 +356,14 @@ UpdateUiRunningState(btnName) {
     if (btnName == "enterSpam" || btnName == "gas") {
         PreProgressBar.Visible := false
         ProgressBar.Visible := false
+        LoopProgressBar.Visible := false
         ProgressText.Visible := false
         if (SkipBtn) {
             SkipBtn.Visible := false
             SkipBtn.Move(-100, -100)
         }
         MyGui.Show("X" GuiX " Y" GuiY " W40 h" GuiH " NoActivate")
-    } else if (btnName == "newSeq" || btnName == "seq") {
+    } else if (btnName == "newSeq" || btnName == "seq" || btnName == "rival") {
         if (StopAfterCurrentLoop) {
             SkipBtn.Opt("cRed")
         } else {
@@ -366,8 +372,16 @@ UpdateUiRunningState(btnName) {
         SkipBtn.Visible := true
         SkipBtn.Move(40, -2)
         PreProgressBar.Visible := false
-        ProgressBar.Move(85, 3, 570, 24)
-        ProgressBar.Visible := true
+        if (btnName == "rival" && RivalLoopLimit == 0) {
+            ProgressBar.Visible := false
+            LoopProgressBar.Move(85, 3, 570, 24)
+            LoopProgressBar.Visible := true
+        } else {
+            ProgressBar.Move(85, 3, 570, 12)
+            ProgressBar.Visible := true
+            LoopProgressBar.Move(85, 15, 570, 12)
+            LoopProgressBar.Visible := true
+        }
         ProgressText.Move(85, 1, 570, 28)
         ProgressText.Visible := true
         MyGui.Show("X" GuiX " Y" GuiY " W660 h" GuiH " NoActivate")
@@ -377,8 +391,10 @@ UpdateUiRunningState(btnName) {
             SkipBtn.Move(-100, -100)
         }
         PreProgressBar.Visible := false
-        ProgressBar.Move(45, 3, 610, 24)
+        ProgressBar.Move(45, 3, 610, 12)
         ProgressBar.Visible := true
+        LoopProgressBar.Move(45, 15, 610, 12)
+        LoopProgressBar.Visible := true
         ProgressText.Move(45, 1, 610, 28)
         ProgressText.Visible := true
         MyGui.Show("X" GuiX " Y" GuiY " W660 h" GuiH " NoActivate")
@@ -387,9 +403,10 @@ UpdateUiRunningState(btnName) {
 }
 
 ResetUiToNormal() {
-    global GuiBtns, SkipBtn, MyGui, GuiX, GuiY, GuiH, GuiOpacity, PreProgressBar, ProgressBar, ProgressText, GameTitle, btnConfigs
+    global GuiBtns, SkipBtn, MyGui, GuiX, GuiY, GuiH, GuiOpacity, PreProgressBar, ProgressBar, LoopProgressBar, ProgressText, GameTitle, btnConfigs
     PreProgressBar.Visible := false
     ProgressBar.Visible := false
+    LoopProgressBar.Visible := false
     ProgressText.Visible := false
     ProgressText.Move(45, 1, 610, 28)
     SkipBtn.Visible := false
@@ -474,13 +491,13 @@ DrawDividers() {
     }
 
     while (xPositions.Length > DividerCtrls.Length) {
-        ctrl := MyGui.Add("Text", "y3 w2 h24 +BackgroundAAAAFF +Hidden", "")
+        ctrl := MyGui.Add("Text", "y3 w2 h12 +BackgroundAAAAFF +Hidden", "")
         DividerCtrls.Push(ctrl)
     }
 
     for idx, xPos in xPositions {
         ctrl := DividerCtrls[idx]
-        ctrl.Move(xPos, 3)
+        ctrl.Move(xPos, 3, 2, 12)
         ctrl.Visible := true
     }
 }
@@ -517,7 +534,7 @@ globalSkillCost := CalculatePathCost(globalSkillPath)
 ; --- 【無邊框沉浸式確認對話框】 ---
 ; =================================================================
 ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extraParams := "", limitName := "", getSingleLoopMsFn := "") {
-    global GuiX, GuiY, GuiOpacity, GameTitle, ConfirmState, IsSimplifyDividers, CurrentConfirmUpdateFn, globalSkillPath, globalSkillCost, SkillBuyCarEnabled, AutoLoopEnabled
+    global GuiX, GuiY, GuiOpacity, GameTitle, ConfirmState, IsSimplifyDividers, CurrentConfirmUpdateFn, globalSkillPath, globalSkillCost, SkillBuyCarEnabled, AutoLoopEnabled, Enable5AMWait, RebootHour, RebootWaitMin
     CurrentConfirmUpdateFn := UpdateTimeDisplay
 
     ConfirmGui := Gui("+AlwaysOnTop -Caption -Border +ToolWindow +Owner")
@@ -534,12 +551,18 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
             originalExtraVals.Push(%(item.varRef)%)
         }
     }
+    originalEnable5AMWait := Enable5AMWait
+    originalRebootHour := RebootHour
+    originalRebootWaitMin := RebootWaitMin
 
     local sliderCtrl := "", chkSimplify := "", timeTextCtrl := "", chkBuyCar := "", chkAutoLoop := ""
     local labelTextPart1 := "", labelTextPart2 := "", labelTextPart3 := ""
     local extraLabelCtrls := []
     local extraSliderCtrls := []
     local gridTitleCtrl := ""
+    local chk5AMWait := "", sldRebootHour := "", sldRebootWaitMin := ""
+    local lblRebootHourTitle := "", lblRebootHourVal := "", lblRebootHourUnit := ""
+    local lblRebootWaitTitle := "", lblRebootWaitVal := "", lblRebootWaitUnit := ""
 
     ; 初始化全域活動對話框狀態物件，以供全域 OnHScroll 訊息監聽使用
     ActiveConfirmDialog.sliderCtrl := ""
@@ -553,7 +576,6 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
 
 
 
- 
     ; 4x4 矩陣選擇相關控制變數
     local buttons := Map()
     selectedPath := []
@@ -659,6 +681,48 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
             earnedPoints := Min(999, sliderCtrl.Value * 10)
             loopCount := globalSkillCost > 0 ? Floor(earnedPoints / globalSkillCost) : 0
             chkAutoLoop.Text := " 自動雙循環（自動連續行程 " loopCount " 次）"
+        }
+
+        if (chk5AMWait) {
+            Enable5AMWait := chk5AMWait.Value
+        }
+        if (sldRebootHour && lblRebootHourVal) {
+            RebootHour := sldRebootHour.Value
+            oldValStr := lblRebootHourVal.Text
+            valStr := String(RebootHour)
+            if (oldValStr != valStr) {
+                lblRebootHourVal.Text := valStr
+                if (StrLen(oldValStr) != StrLen(valStr)) {
+                    lblRebootHourVal.Move(,, StrLen(valStr) * 16 + 4)
+                    lblRebootHourTitle.GetPos(&p1X, &p1Y, &p1W)
+                    lblRebootHourVal.Move(p1X + p1W)
+
+                    lblRebootHourVal.GetPos(&pvX, &pvY, &pvW)
+                    lblRebootHourUnit.Move(pvX + pvW)
+                }
+                lblRebootHourTitle.Redraw()
+                lblRebootHourVal.Redraw()
+                lblRebootHourUnit.Redraw()
+            }
+        }
+        if (sldRebootWaitMin && lblRebootWaitVal) {
+            RebootWaitMin := sldRebootWaitMin.Value
+            oldValStr := lblRebootWaitVal.Text
+            valStr := String(RebootWaitMin)
+            if (oldValStr != valStr) {
+                lblRebootWaitVal.Text := valStr
+                if (StrLen(oldValStr) != StrLen(valStr)) {
+                    lblRebootWaitVal.Move(,, StrLen(valStr) * 16 + 4)
+                    lblRebootWaitTitle.GetPos(&p2X, &p2Y, &p2W)
+                    lblRebootWaitVal.Move(p2X + p2W)
+
+                    lblRebootWaitVal.GetPos(&pvX2, &pvY2, &pvW2)
+                    lblRebootWaitUnit.Move(pvX2 + pvW2)
+                }
+                lblRebootWaitTitle.Redraw()
+                lblRebootWaitVal.Redraw()
+                lblRebootWaitUnit.Redraw()
+            }
         }
 
         if (isSkillSeq && triggerCtrl) {
@@ -769,9 +833,10 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
 
         if (hasLimitSlider && labelTextPart2) {
             oldValStr := labelTextPart2.Text
-            if (oldValStr != String(val)) {
-                labelTextPart2.Text := val
-                needReposition := (StrLen(oldValStr) != StrLen(String(val)))
+            displayVal := (limitName == "RivalLoopLimit" && val == 0) ? "∞" : String(val)
+            if (oldValStr != displayVal) {
+                labelTextPart2.Text := displayVal
+                needReposition := (StrLen(oldValStr) != StrLen(displayVal))
                 newPart3Text := ""
                 if (isSimp && val >= 20) {
                     groupCount := Ceil(val / 10)
@@ -784,7 +849,8 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                     needReposition := true
                 }
                 if (needReposition) {
-                    labelTextPart2.Move(,, StrLen(val) * 16 + 4)
+                    valW := (displayVal == "∞") ? 75 : (StrLen(displayVal) * 16 + 10)
+                    labelTextPart2.Move(,, valW)
                     labelTextPart1.GetPos(&l1X, &l1Y, &l1W)
                     labelTextPart2.Move(l1X + l1W)
 
@@ -814,6 +880,9 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
     if (limitName == "NewSequenceLoopLimit") {
         guiH += 40   ; 為自動雙循環開關保留高度
     }
+    if (limitName == "NewSequenceLoopLimit" || limitName == "RivalLoopLimit") {
+        guiH += 170  ; 為路由器重啟開關與兩個拉桿保留高度
+    }
 
     if (totalSliders > 0) {
         ConfirmGui.SetFont("s16 Bold cWhite", "Microsoft JhengHei")
@@ -839,14 +908,15 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
             } else if (limitName == "BuyCarLoopLimit") {
                 sliderRange := "0-100"
             } else if (limitName == "RivalLoopLimit") {
-                sliderRange := "1-100"
+                sliderRange := "0-100"
             }
 
             ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
             labelTextPart1 := ConfirmGui.Add("Text", "x20 y" currY " +BackgroundTrans", "循環 ")
 
             ConfirmGui.SetFont("s20 Bold cYellow", "Microsoft JhengHei")
-            labelTextPart2 := ConfirmGui.Add("Text", "x+0 y" (currY - 5) " +BackgroundTrans", initialLimit)
+            labelTextPart2Text := (limitName == "RivalLoopLimit" && initialLimit == 0) ? "∞" : initialLimit
+            labelTextPart2 := ConfirmGui.Add("Text", "x+0 y" (currY - 5) " +BackgroundTrans", labelTextPart2Text)
 
             ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
             labelTextPart3Text := (IsSimplifyDividers && initialLimit >= 20) ? "次 / 簡化為" Ceil(initialLimit / 10) "格：" : "次："
@@ -922,6 +992,45 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
             chkAutoLoop := ConfirmGui.Add("Checkbox", "x20 y" currY " w420 Checked" (AutoLoopEnabled ? "1" : "0"), " 自動雙循環（賺點數行程後自動接點技能行程 33 次）")
             chkAutoLoop.OnEvent("Click", UpdateTimeDisplay)
             currY += 40
+        }
+
+        if (limitName == "NewSequenceLoopLimit" || limitName == "RivalLoopLimit") {
+            ConfirmGui.SetFont("s12 cWhite", "Microsoft JhengHei")
+            chk5AMWait := ConfirmGui.Add("Checkbox", "x20 y" currY " w420 Checked" (Enable5AMWait ? "1" : "0"), " 啟用路由器重啟等待與自動確認")
+            chk5AMWait.OnEvent("Click", UpdateTimeDisplay)
+            currY += 35
+
+            ; 重啟預測時間拉桿
+            ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
+            lblRebootHourTitle := ConfirmGui.Add("Text", "x20 y" currY " +BackgroundTrans", "預測重啟時間 ")
+            
+            ConfirmGui.SetFont("s20 Bold cYellow", "Microsoft JhengHei")
+            lblRebootHourVal := ConfirmGui.Add("Text", "x+0 y" (currY - 5) " +BackgroundTrans", String(RebootHour))
+            
+            ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
+            lblRebootHourUnit := ConfirmGui.Add("Text", "x+0 y" currY " w220 +BackgroundTrans", "點：")
+            
+            ConfirmGui.SetFont("s10 cWhite")
+            sldRebootHour := ConfirmGui.Add("Slider", "x20 y" (currY + 25) " w420 h30 Range0-23 Thick30 Tooltip AltSubmit", RebootHour)
+            sldRebootHour.OnEvent("Change", UpdateTimeDisplay)
+            ActiveConfirmDialog.sliderMap[sldRebootHour.Hwnd & 0xFFFFFFFF] := { type: "extra", ctrl: sldRebootHour }
+            currY += 65
+
+            ; 重啟等待時間拉桿
+            ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
+            lblRebootWaitTitle := ConfirmGui.Add("Text", "x20 y" currY " +BackgroundTrans", "重啟等待時間 ")
+            
+            ConfirmGui.SetFont("s20 Bold cYellow", "Microsoft JhengHei")
+            lblRebootWaitVal := ConfirmGui.Add("Text", "x+0 y" (currY - 5) " +BackgroundTrans", String(RebootWaitMin))
+            
+            ConfirmGui.SetFont("s14 Bold cGray", "Microsoft JhengHei")
+            lblRebootWaitUnit := ConfirmGui.Add("Text", "x+0 y" currY " w220 +BackgroundTrans", "分鐘：")
+            
+            ConfirmGui.SetFont("s10 cWhite")
+            sldRebootWaitMin := ConfirmGui.Add("Slider", "x20 y" (currY + 25) " w420 h30 Range1-15 Thick30 Tooltip AltSubmit", RebootWaitMin)
+            sldRebootWaitMin.OnEvent("Change", UpdateTimeDisplay)
+            ActiveConfirmDialog.sliderMap[sldRebootWaitMin.Hwnd & 0xFFFFFFFF] := { type: "extra", ctrl: sldRebootWaitMin }
+            currY += 70
         }
 
         ; --- 若為技能行程，在對話框最下方加入 4x4 網格 ---
@@ -1059,6 +1168,15 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
         if (isSkillSeq) {
             globalSkillPath := selectedPath
         }
+        if (chk5AMWait) {
+            Enable5AMWait := chk5AMWait.Value
+        }
+        if (sldRebootHour) {
+            RebootHour := sldRebootHour.Value
+        }
+        if (sldRebootWaitMin) {
+            RebootWaitMin := sldRebootWaitMin.Value
+        }
     } else {
         if (hasLimitSlider) {
             %limitVarRef% := originalLimit
@@ -1068,6 +1186,9 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 %(item.varRef)% := originalExtraVals[idx]
             }
         }
+        Enable5AMWait := originalEnable5AMWait
+        RebootHour := originalRebootHour
+        RebootWaitMin := originalRebootWaitMin
 
     }
  
@@ -1548,7 +1669,7 @@ RunLButtonSequence(bypassConfirm := false) {
     }
     restLoopMs += navMs + endMs
 
-            CalculateTotalMs(path := "") {
+    CalculateTotalMs(path := "") {
         global SkillBuyCarEnabled
         if (path == "") {
             path := globalSkillPath
@@ -1691,33 +1812,6 @@ RunLButtonSequence(bypassConfirm := false) {
     TotalMs := CalculateTotalMs()
     sequenceTotalSec := Ceil(TotalMs / 1000)
 
-    ; 檢查並等待路由器重啟 (今日 5:00 - 5:03 AM)
-    if (AutoLoopEnabled && Enable5AMWait) {
-        rebootStartStr := FormatTime(A_Now, "yyyyMMdd") "050000"
-        rebootEndStr := FormatTime(A_Now, "yyyyMMdd") "050300"
-        if (DateDiff(rebootEndStr, A_Now, "Seconds") >= 0) {
-            secondsToRebootStart := DateDiff(rebootStartStr, A_Now, "Seconds")
-            if (secondsToRebootStart <= 0 || sequenceTotalSec >= secondsToRebootStart) {
-                waitSec := DateDiff(rebootEndStr, A_Now, "Seconds")
-                if (waitSec > 0) {
-                    if (!CountdownSleep(waitSec * 1000, "等待網路重啟 (5:03)")) {
-                        StopGasAndClean()
-                        return
-                    }
-                }
-                ; 按兩次 Enter 確認斷線訊息
-                if (!SendKey("Enter", 250, 1000, &isSequenceRunning)) {
-                    StopGasAndClean()
-                    return
-                }
-                if (!SendKey("Enter", 250, 1000, &isSequenceRunning)) {
-                    StopGasAndClean()
-                    return
-                }
-            }
-        }
-    }
-
     if WinExist(GameTitle) {
         WinActivate(GameTitle)
         if !WinWaitActive(GameTitle, , 3) {
@@ -1726,7 +1820,7 @@ RunLButtonSequence(bypassConfirm := false) {
         }
     }
 
-        ; 計算前置時間
+    ; 計算前置時間
     preparationMs := 0
     for idx, action in preActions {
         if (!SkillBuyCarEnabled && idx > 6) {
@@ -1763,6 +1857,22 @@ RunLButtonSequence(bypassConfirm := false) {
         }
         globalSegmentEnds.Push(globalTotalMs)
     }
+
+    preActionsMs := 0
+    for idx, action in preActions {
+        if (!SkillBuyCarEnabled && idx > 6) {
+            break
+        }
+        preActionsMs += CalculateActionMs(action)
+    }
+    buyCarEndMs := 0
+    for action in buyCarEndActions {
+        buyCarEndMs += CalculateActionMs(action)
+    }
+
+    global currentLoopStartTime, currentLoopDuration
+    currentLoopStartTime := A_TickCount
+    currentLoopDuration := preActionsMs
  
     DrawDividers()
     sequenceStartTime := A_TickCount
@@ -1826,6 +1936,8 @@ RunLButtonSequence(bypassConfirm := false) {
     ; --- 2. 執行買車次數循環 ---
     if (!loopBreak && SkillBuyCarEnabled && LoopCountLimit > 0) {
         Loop LoopCountLimit {
+            currentLoopStartTime := A_TickCount
+            currentLoopDuration := oneBuyLoopMs
             currentLoopItem := A_Index
             currentLoopTotalMs := oneBuyLoopMs
             if (!isSequenceRunning || (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
@@ -1847,8 +1959,10 @@ RunLButtonSequence(bypassConfirm := false) {
         }
     }
 
-            ; --- 3. 買車完畢後按 esc*3 與 Right 還有 Up ---
+    ; --- 3. 買車完畢後按 esc*3 與 Right 還有 Up ---
     if (!loopBreak && SkillBuyCarEnabled && LoopCountLimit > 0) {
+        currentLoopStartTime := A_TickCount
+        currentLoopDuration := buyCarEndMs
         for action in buyCarEndActions {
             repeat := action.HasOwnProp("repeat") ? action.repeat : 1
             if (repeat > 1) {
@@ -1885,6 +1999,8 @@ RunLButtonSequence(bypassConfirm := false) {
             currentLoopItem := A_Index
             currentLoopTotalMs := (A_Index == 1) ? firstLoopMs : restLoopMs
             loopStartTime := A_TickCount
+            currentLoopStartTime := A_TickCount
+            currentLoopDuration := currentLoopTotalMs
  
             ; 執行點技能的前半靜態步驟
             skillBreak := false
@@ -2470,33 +2586,6 @@ RunNewSequence(bypassConfirm := false) {
     NewSequenceTotalMs := oneLoopTotalMs
     sequenceTotalSec := Ceil(CalculateTotalMs(NewSequenceLoopLimit, false) / 1000)
 
-    ; 檢查並等待路由器重啟 (今日 5:00 - 5:03 AM)
-    if (AutoLoopEnabled && Enable5AMWait) {
-        rebootStartStr := FormatTime(A_Now, "yyyyMMdd") "050000"
-        rebootEndStr := FormatTime(A_Now, "yyyyMMdd") "050300"
-        if (DateDiff(rebootEndStr, A_Now, "Seconds") >= 0) {
-            secondsToRebootStart := DateDiff(rebootStartStr, A_Now, "Seconds")
-            if (secondsToRebootStart <= 0 || sequenceTotalSec >= secondsToRebootStart) {
-                waitSec := DateDiff(rebootEndStr, A_Now, "Seconds")
-                if (waitSec > 0) {
-                    if (!CountdownSleep(waitSec * 1000, "等待網路重啟 (5:03)")) {
-                        StopGasAndClean()
-                        return
-                    }
-                }
-                ; 按兩次 Enter 確認斷線訊息
-                if (!SendKey("Enter", 250, 1000, &isNewSequenceRunning)) {
-                    StopGasAndClean()
-                    return
-                }
-                if (!SendKey("Enter", 250, 1000, &isNewSequenceRunning)) {
-                    StopGasAndClean()
-                    return
-                }
-            }
-        }
-    }
-
     if WinExist(GameTitle) {
         WinActivate(GameTitle)
         if !WinWaitActive(GameTitle, , 3) {
@@ -2505,7 +2594,7 @@ RunNewSequence(bypassConfirm := false) {
         }
     }
 
-        ; 計算前置時間
+    ; 計算前置時間
     preMs := 0
     for action in preActions {
         preMs += CalculateActionMs(action)
@@ -2536,6 +2625,10 @@ RunNewSequence(bypassConfirm := false) {
     }
     globalSegmentEnds.Push(globalSegmentEnds[globalSegmentEnds.Length] + finalLoopMs)
  
+    global currentLoopStartTime, currentLoopDuration
+    currentLoopStartTime := A_TickCount
+    currentLoopDuration := preMs
+
     DrawDividers()
     sequenceStartTime := A_TickCount
     newLoopStartTime := A_TickCount
@@ -2599,7 +2692,15 @@ RunNewSequence(bypassConfirm := false) {
                 break
             }
             currentNewLoopItem := A_Index
+            if (A_Index < NewSequenceLoopLimit) {
+                if (!CheckAndWait5AMReboot(Ceil(oneLoopMs / 1000), &isNewSequenceRunning)) {
+                    loopBreak := true
+                    break
+                }
+            }
             newLoopStartTime := A_TickCount
+            currentLoopStartTime := A_TickCount
+            currentLoopDuration := (A_Index == NewSequenceLoopLimit) ? finalLoopMs : oneLoopMs
 
             if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
                 loopBreak := true
@@ -2716,17 +2817,6 @@ RunBuyCarSequence() {
 
     CalculateTotalMs(mfgUp := BuyCarMfgUp, mfgDown := BuyCarMfgDown, mfgLeft := BuyCarMfgLeft, mfgRight := BuyCarMfgRight, selUp := BuyCarSelUp, selDown := BuyCarSelDown, selLeft := BuyCarSelLeft, selRight := BuyCarSelRight) {
         local totalMs := 0
-        ; 計算車廠與選車移動的時間
-        totalMs += mfgUp * 750
-        totalMs += mfgDown * 750
-        totalMs += mfgLeft * 750
-        totalMs += mfgRight * 750
-        totalMs += selUp * 750
-        totalMs += selDown * 750
-        totalMs += selLeft * 750
-        totalMs += selRight * 750
-        totalMs += 750 ; 車廠 Enter 鍵時間
-
         for action in staticActions {
             if (action.HasOwnProp("sleep")) {
                 totalMs += action.sleep
@@ -2797,6 +2887,8 @@ RunBuyCarSequence() {
     Loop BuyCarLoopLimit {
         globalSegmentEnds.Push(A_Index * BuyCarTotalMs)
     }
+
+    global currentLoopStartTime, currentLoopDuration
     DrawDividers()
     sequenceStartTime := A_TickCount
     UpdateUiRunningState("buyCar")
@@ -2808,6 +2900,8 @@ RunBuyCarSequence() {
             break
         currentBuyCarLoopItem := A_Index
         buyCarStartTime := A_TickCount
+        currentLoopStartTime := A_TickCount
+        currentLoopDuration := BuyCarTotalMs
 
         if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
             StopGasAndClean()
@@ -2855,8 +2949,10 @@ RunBuyCarSequence() {
 }
 
 UpdateLoopProgress() {
-    global isSequenceRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText, MyGui
+    global isSequenceRunning, sequenceStartTime, globalTotalMs, ProgressBar, LoopProgressBar, ProgressText, currentStepText, MyGui
+    global currentLoopStartTime, currentLoopDuration
     static lastLoopVal := -1
+    static lastSubLoopVal := -1
     
     if (!isSequenceRunning) {
         SetTimer(UpdateLoopProgress, 0)
@@ -2866,14 +2962,22 @@ UpdateLoopProgress() {
     elapsedTotal := A_TickCount - sequenceStartTime
     if (elapsedTotal < 200) {
         lastLoopVal := -1
+        lastSubLoopVal := -1
     }
     
     percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
     newLoopVal := Integer(percent * 570 / 10000)
-    if (newLoopVal != lastLoopVal) {
+    
+    elapsedLoop := A_TickCount - currentLoopStartTime
+    loopPercent := (currentLoopDuration > 0) ? Integer(Min(10000, Max(0, (elapsedLoop / currentLoopDuration) * 10000))) : 0
+    newSubLoopVal := Integer(loopPercent * 570 / 10000)
+
+    if (newLoopVal != lastLoopVal || newSubLoopVal != lastSubLoopVal) {
         DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
         ProgressBar.Value := percent
+        LoopProgressBar.Value := loopPercent
         lastLoopVal := newLoopVal
+        lastSubLoopVal := newSubLoopVal
         if (ProgressText)
             ProgressText.Redraw()
         DllCall("LockWindowUpdate", "Ptr", 0)
@@ -2882,25 +2986,39 @@ UpdateLoopProgress() {
 }
 
 UpdateNewLoopProgress() {
-    global isNewSequenceRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText, MyGui
+    global isNewSequenceRunning, sequenceStartTime, globalTotalMs, ProgressBar, LoopProgressBar, ProgressText, currentStepText, MyGui, IsWaitingReboot
+    global currentLoopStartTime, currentLoopDuration
     static lastLoopVal := -1
+    static lastSubLoopVal := -1
 
     if (!isNewSequenceRunning) {
         SetTimer(UpdateNewLoopProgress, 0)
         return
     }
 
+    if (IsWaitingReboot) {
+        return
+    }
+
     elapsedTotal := A_TickCount - sequenceStartTime
     if (elapsedTotal < 200) {
         lastLoopVal := -1
+        lastSubLoopVal := -1
     }
   
     percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
     newLoopVal := Integer(percent * 570 / 10000)
-    if (newLoopVal != lastLoopVal) {
+    
+    elapsedLoop := A_TickCount - currentLoopStartTime
+    loopPercent := (currentLoopDuration > 0) ? Integer(Min(10000, Max(0, (elapsedLoop / currentLoopDuration) * 10000))) : 0
+    newSubLoopVal := Integer(loopPercent * 570 / 10000)
+
+    if (newLoopVal != lastLoopVal || newSubLoopVal != lastSubLoopVal) {
         DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
         ProgressBar.Value := percent
+        LoopProgressBar.Value := loopPercent
         lastLoopVal := newLoopVal
+        lastSubLoopVal := newSubLoopVal
         if (ProgressText)
             ProgressText.Redraw()
         DllCall("LockWindowUpdate", "Ptr", 0)
@@ -2909,8 +3027,10 @@ UpdateNewLoopProgress() {
 }
 
 UpdateBuyCarLoopProgress() {
-    global isBuyCarRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText, MyGui
+    global isBuyCarRunning, sequenceStartTime, globalTotalMs, ProgressBar, LoopProgressBar, ProgressText, currentStepText, MyGui
+    global currentLoopStartTime, currentLoopDuration
     static lastLoopVal := -1
+    static lastSubLoopVal := -1
 
     if (!isBuyCarRunning) {
         SetTimer(UpdateBuyCarLoopProgress, 0)
@@ -2920,14 +3040,21 @@ UpdateBuyCarLoopProgress() {
     elapsedTotal := A_TickCount - sequenceStartTime
     if (elapsedTotal < 200) {
         lastLoopVal := -1
+        lastSubLoopVal := -1
     }
     percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
     newLoopVal := Integer(percent * 570 / 10000)
+    
+    elapsedLoop := A_TickCount - currentLoopStartTime
+    loopPercent := (currentLoopDuration > 0) ? Integer(Min(10000, Max(0, (elapsedLoop / currentLoopDuration) * 10000))) : 0
+    newSubLoopVal := Integer(loopPercent * 570 / 10000)
 
-    if (newLoopVal != lastLoopVal) {
+    if (newLoopVal != lastLoopVal || newSubLoopVal != lastSubLoopVal) {
         DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
         ProgressBar.Value := percent
+        LoopProgressBar.Value := loopPercent
         lastLoopVal := newLoopVal
+        lastSubLoopVal := newSubLoopVal
         if (ProgressText)
             ProgressText.Redraw()
         DllCall("LockWindowUpdate", "Ptr", 0)
@@ -2936,25 +3063,43 @@ UpdateBuyCarLoopProgress() {
 }
 
 UpdateRivalLoopProgress() {
-    global isRivalRunning, sequenceStartTime, globalTotalMs, ProgressBar, ProgressText, currentStepText, MyGui
+    global isRivalRunning, sequenceStartTime, globalTotalMs, ProgressBar, LoopProgressBar, ProgressText, currentStepText, MyGui, IsWaitingReboot, RivalLoopLimit
+    global currentLoopStartTime, currentLoopDuration
     static lastLoopVal := -1
+    static lastSubLoopVal := -1
 
     if (!isRivalRunning) {
         SetTimer(UpdateRivalLoopProgress, 0)
         return
     }
 
+    if (IsWaitingReboot) {
+        return
+    }
+
     elapsedTotal := A_TickCount - sequenceStartTime
     if (elapsedTotal < 200) {
         lastLoopVal := -1
+        lastSubLoopVal := -1
     }
-    percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+    percent := 0
+    if (RivalLoopLimit > 0) {
+        percent := Integer(Min(10000, Max(0, (elapsedTotal / globalTotalMs) * 10000)))
+    }
     newLoopVal := Integer(percent * 570 / 10000)
+    
+    elapsedLoop := A_TickCount - currentLoopStartTime
+    loopPercent := (currentLoopDuration > 0) ? Integer(Min(10000, Max(0, (elapsedLoop / currentLoopDuration) * 10000))) : 0
+    newSubLoopVal := Integer(loopPercent * 570 / 10000)
 
-    if (newLoopVal != lastLoopVal) {
+    if (newLoopVal != lastLoopVal || newSubLoopVal != lastSubLoopVal) {
         DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
-        ProgressBar.Value := percent
+        if (RivalLoopLimit > 0) {
+            ProgressBar.Value := percent
+        }
+        LoopProgressBar.Value := loopPercent
         lastLoopVal := newLoopVal
+        lastSubLoopVal := newSubLoopVal
         if (ProgressText)
             ProgressText.Redraw()
         DllCall("LockWindowUpdate", "Ptr", 0)
@@ -3042,7 +3187,7 @@ CheckEveryHourly() {
 }
 
 StopGasAndClean() {
-    global MyGui, isGasOn, isSequenceRunning, isEnterSpamRunning, isNewSequenceRunning, isBuyCarRunning, ProgressText, PreProgressBar, ProgressBar, GuiX, GuiY, GuiH, currentStepText, isRivalRunning, AutoLoopCount, HasPreparationPhase, StopAfterCurrentLoop, SkipBtn
+    global MyGui, isGasOn, isSequenceRunning, isEnterSpamRunning, isNewSequenceRunning, isBuyCarRunning, ProgressText, PreProgressBar, ProgressBar, LoopProgressBar, GuiX, GuiY, GuiH, currentStepText, isRivalRunning, AutoLoopCount, HasPreparationPhase, StopAfterCurrentLoop, SkipBtn
 
     isGasOn := false
     isSequenceRunning := false
@@ -3062,6 +3207,7 @@ StopGasAndClean() {
     }
     PreProgressBar.Value := 0
     ProgressBar.Value := 0
+    LoopProgressBar.Value := 0
     ShowTip("")
     ClearDividers()
 
@@ -3126,16 +3272,20 @@ ShowTip(stepText) {
         return
     }
  
-    elapsedTotal := A_TickCount - sequenceStartTime
-    percent := (globalTotalMs > 0) ? (elapsedTotal / globalTotalMs * 100) : 0
-    percent := Min(100, Max(0, Integer(percent)))
+    if (isRivalRunning && RivalLoopLimit == 0) {
+        infoText := "↻" cur "➤" stepText
+    } else {
+        elapsedTotal := A_TickCount - sequenceStartTime
+        percent := (globalTotalMs > 0) ? (elapsedTotal / globalTotalMs * 100) : 0
+        percent := Min(100, Max(0, Integer(percent)))
 
-    elapsedSec := (A_TickCount - sequenceStartTime) / 1000
-    remSec := Max(0, Ceil(sequenceTotalSec - elapsedSec))
-    countdownStr := FormatTimeDuration(remSec)
+        elapsedSec := (A_TickCount - sequenceStartTime) / 1000
+        remSec := Max(0, Ceil(sequenceTotalSec - elapsedSec))
+        countdownStr := FormatTimeDuration(remSec)
 
-    prefix := (AutoLoopEnabled && AutoLoopCount > 0) ? "↻" AutoLoopCount "" : ""
-    infoText := prefix "[" cur "/" limit "]" percent "％" countdownStr "➤" stepText
+        prefix := (AutoLoopEnabled && AutoLoopCount > 0) ? "↻" AutoLoopCount "" : ""
+        infoText := prefix "[" cur "/" limit "]" percent "％" countdownStr "➤" stepText
+    }
 
     if (ProgressText && infoText != lastInfoText) {
         DllCall("LockWindowUpdate", "Ptr", MyGui.Hwnd)
@@ -3172,8 +3322,6 @@ RunRivalSequence() {
         { key: "Enter", press: 250, wait: 1000, tip: "6. 按 ⏎ (1/3)" },
         { key: "Enter", press: 250, wait: 2000, tip: "7. 按 ⏎ (2/3)" },
         { key: "Enter", press: 250, wait: 1000, tip: "8. 按 ⏎ (3/3)" },
-        { key: "Left", press: 250, wait: 500, tip: "9. 按 ⬅ (1/2)" },
-        { key: "Left", press: 250, wait: 500, tip: "10. 按 ⬅ (2/2)" },
         { key: "Enter", press: 250, wait: 1500, tip: "11. 按 ⏎" },
         { key: "Left", press: 250, wait: 500, tip: "12. 按 ⬅" },
         { sleepVar: "RivalLoadSec", countdown: true, tip: "篩選前等待" },
@@ -3250,7 +3398,8 @@ RunRivalSequence() {
 
     ; 初始化預計結束時間
     singleLoopSec := Ceil(CalculateTotalMs() / 1000)
-    totalMin := Ceil((RivalLoopLimit * singleLoopSec) / 60)
+    actualLimit := (RivalLoopLimit == 0) ? 1 : RivalLoopLimit
+    totalMin := Ceil((actualLimit * singleLoopSec) / 60)
     currentTotalMin := A_Hour * 60 + A_Min
     endTotalMin := Mod(currentTotalMin + totalMin, 1440)
     RivalEndHour := Floor(endTotalMin / 60)
@@ -3258,7 +3407,8 @@ RunRivalSequence() {
 
     recalcFn := (limit, throttleSec, loadSec, transitionSec, endHour := 0, endMin := 0) => (
         dynamicTotalMs := CalculateTotalMs(),
-        FormatTimeDuration(Ceil((limit * dynamicTotalMs) / 1000))
+        actualLim := (limit == 0) ? 1 : limit,
+        FormatTimeDuration(Ceil((actualLim * dynamicTotalMs) / 1000))
     )
     timeStr := recalcFn(RivalLoopLimit, RivalThrottleSec, RivalLoadSec, RivalTransitionSec, RivalEndHour, RivalEndMin)
  
@@ -3280,7 +3430,8 @@ RunRivalSequence() {
     }
 
     RivalTotalMs := CalculateTotalMs()
-    sequenceTotalSec := Ceil((RivalLoopLimit * RivalTotalMs) / 1000)
+    actualLimitVal := (RivalLoopLimit == 0) ? 1 : RivalLoopLimit
+    sequenceTotalSec := Ceil((actualLimitVal * RivalTotalMs) / 1000)
 
     if WinExist(GameTitle) {
         WinActivate(GameTitle)
@@ -3297,17 +3448,27 @@ RunRivalSequence() {
     Loop RivalLoopLimit {
         globalSegmentEnds.Push(A_Index * RivalTotalMs)
     }
+
+    global currentLoopStartTime, currentLoopDuration
     DrawDividers()
     sequenceStartTime := A_TickCount
     UpdateUiRunningState("rival")
     SetTimer(UpdateRivalLoopProgress, 100)
 
     currentRivalLoopItem := 0
-    Loop RivalLoopLimit {
-        if (!isRivalRunning)
+    Loop {
+        if (!isRivalRunning || (RivalLoopLimit > 0 && A_Index > RivalLoopLimit) || StopAfterCurrentLoop) {
             break
+        }
         currentRivalLoopItem := A_Index
+        if (RivalLoopLimit == 0 || A_Index < RivalLoopLimit) {
+            if (!CheckAndWait5AMReboot(Ceil(RivalTotalMs / 1000), &isRivalRunning)) {
+                break
+            }
+        }
         rivalLoopStartTime := A_TickCount
+        currentLoopStartTime := A_TickCount
+        currentLoopDuration := RivalTotalMs
 
         if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
             StopGasAndClean()
@@ -3575,6 +3736,71 @@ GetAnyJoyState(btnNum) {
         }
     }
     return false
+}
+CheckAndWait5AMReboot(loopDurationSec, &isRunningVar) {
+    global Enable5AMWait, RebootHour, RebootWaitMin, GameTitle, MyGui, IsWaitingReboot, ProgressBar, LoopProgressBar, currentNewLoopItem, NewSequenceLoopLimit, currentRivalLoopItem, RivalLoopLimit, isNewSequenceRunning, isRivalRunning
+    if (!Enable5AMWait) {
+        return true
+    }
+
+    hourStr := Format("{:02d}", RebootHour)
+    rebootStartStr := FormatTime(A_Now, "yyyyMMdd") hourStr "0000"
+    rebootEndStr := DateAdd(rebootStartStr, RebootWaitMin, "Minutes")
+
+    secondsToRebootEnd := DateDiff(rebootEndStr, A_Now, "Seconds")
+    if (secondsToRebootEnd >= 0) {
+        secondsToRebootStart := DateDiff(rebootStartStr, A_Now, "Seconds")
+        if (secondsToRebootStart <= 0 || loopDurationSec >= secondsToRebootStart) {
+            waitSec := secondsToRebootEnd
+            if (waitSec > 0) {
+                IsWaitingReboot := true
+                startTime := A_TickCount
+                totalMs := waitSec * 1000
+                while (isRunningVar && (A_TickCount - startTime < totalMs)) {
+                    if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
+                        isRunningVar := false
+                        IsWaitingReboot := false
+                        LoopProgressBar.Value := 0
+                        return false
+                    }
+                    elapsedMs := A_TickCount - startTime
+                    remainingMs := totalMs - elapsedMs
+                    remainingSec := Ceil(remainingMs / 1000)
+                    if (remainingSec < 0) {
+                        remainingSec := 0
+                    }
+                    timeDisplay := FormatTimeDuration(remainingSec)
+                    ShowTip("等待網路重啟 (" hourStr ":" Format("{:02d}", RebootWaitMin) ")(倒數" timeDisplay ")")
+
+                    ; 更新藍色 LoopProgressBar 進度
+                    percent := Integer(Min(10000, Max(0, (elapsedMs / totalMs) * 10000)))
+                    LoopProgressBar.Value := percent
+
+                    ; 根據當前行程更新黃色 ProgressBar 總進度
+                    if (isNewSequenceRunning && NewSequenceLoopLimit > 0) {
+                        ProgressBar.Value := Integer(((currentNewLoopItem - 1) / NewSequenceLoopLimit) * 10000)
+                    } else if (isRivalRunning && RivalLoopLimit > 0) {
+                        ProgressBar.Value := Integer(((currentRivalLoopItem - 1) / RivalLoopLimit) * 10000)
+                    }
+
+                    Sleep(100)
+                }
+                IsWaitingReboot := false
+                LoopProgressBar.Value := 0
+                if (!isRunningVar) {
+                    return false
+                }
+            }
+            ; 按兩次 Enter 確認斷線訊息
+            if (!SendKey("Enter", 250, 1000, &isRunningVar)) {
+                return false
+            }
+            if (!SendKey("Enter", 250, 1000, &isRunningVar)) {
+                return false
+            }
+        }
+    }
+    return true
 }
 SendKey(keyName, pressDuration, waitDuration, &isRunning) {
     ; 如果已經停止執行，就回傳 false 讓迴圈中斷
