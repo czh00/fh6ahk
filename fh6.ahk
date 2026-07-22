@@ -40,14 +40,14 @@ global SkillBuyCarEnabled := true ; 點技能前先自動購買車輛
 global NewSequenceLoopLimit := 102 ; 賺技能點行程循環次數
 global BuyCarLoopLimit := 0      ; 買車行程循環次數
 global RivalLoopLimit := 0       ; 勁敵刷錢行程循環次數
-global RivalThrottleSec := 100    ; 勁敵刷錢按住油門時間（秒）
+global RivalThrottleSec := 280    ; 勁敵刷錢按住油門時間（秒）
 global RivalLoadSec := 10          ; 勁敵刷錢等待載入時間（秒）
 global RivalTransitionSec := 50   ; 勁敵刷錢等待過場時間（秒）
 global RivalEndHour := 0          ; 勁敵刷錢預計結束時間（時）
 global AutoLoopEnabled := false    ; 自動雙循環開關
 global AutoLoopCount := 0          ; 自動雙循環當前次數
 global StopAfterCurrentLoop := false ; 於當前循環結束後停止開關
-global Enable5AMWait := false       ; 啟用路由器重啟等待與自動確認
+global Enable5AMWait := true       ; 啟用路由器重啟等待與自動確認
 global RebootHour := 5             ; 路由器重啟預估小時
 global RebootWaitMin := 3          ; 路由器重啟等待分鐘
 global IsWaitingReboot := false     ; 標記是否處於重啟等待倒數中
@@ -3318,29 +3318,30 @@ RunRivalSequence() {
         { key: "PgDn", press: 250, wait: 500, tip: "2. 按 PgDn (1/3)" },
         { key: "PgDn", press: 250, wait: 500, tip: "3. 按 PgDn (2/3)" },
         { key: "PgDn", press: 250, wait: 500, tip: "4. 按 PgDn (3/3)" },
-        { key: "Down", press: 250, wait: 500, tip: "5. 按 ⬇" },
-        { key: "Enter", press: 250, wait: 1000, tip: "6. 按 ⏎ (1/3)" },
-        { key: "Enter", press: 250, wait: 2000, tip: "7. 按 ⏎ (2/3)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "8. 按 ⏎ (3/3)" },
+        { key: "Down", press: 250, wait: 500, tip: "5. 勁敵 按 ⬇" },
+        { key: "Enter", press: 250, wait: 1000, tip: "6. 勁敵 按 ⏎ (1/3)" },
+        { key: "Enter", press: 250, wait: 2000, tip: "7. 公路競速賽 按 ⏎ (2/3)" },
+        { key: "Enter", press: 250, wait: 1000, tip: "8. 高速公路環道 按 ⏎ (3/3)" },
         { key: "Enter", press: 250, wait: 1500, tip: "11. 按 ⏎" },
-        { key: "Left", press: 250, wait: 500, tip: "12. 按 ⬅" },
+        { key: "Left", press: 250, wait: 500, tip: "12. 性能R 按 ⬅" },
         { sleepVar: "RivalLoadSec", countdown: true, tip: "篩選前等待" },
         { key: "y", press: 250, wait: 500, tip: "13. 按 Y" },
         { sleepVar: "RivalLoadSec", countdown: true, tip: "14. 等待載入" },
         { key: "Enter", press: 250, wait: 500, tip: "15. 按 ⏎" },
         { sleepVar: "RivalLoadSec", countdown: true, tip: "16. 等待載入" },
         { key: "Enter", press: 250, wait: 500, tip: "17. 按 ⏎" },
-        { key: "y", press: 250, wait: 500, tip: "18. 按 Y" },
+        { key: "y", press: 250, wait: 500, tip: "18. 我的最愛 按 Y" },
         { key: "Enter", press: 250, wait: 500, tip: "19. 按 ⏎" },
-        { key: "Esc", press: 250, wait: 500, tip: "20. 按 Esc" },
+        { key: "Esc", press: 250, wait: 500, tip: "20. 按 駕駛車 Esc" },
         { key: "Enter", press: 250, wait: 500, tip: "21. 按 ⏎" },
         { sleepVar: "RivalTransitionSec", countdown: true, tip: "22. 等待過場" },
         { key: "Enter", press: 250, wait: 500, tip: "23. 按 ⏎" },
         { key: "w", dynamicWaitVar: "RivalThrottleSec", wait: 500, countdown: true, tip: "24. 按住 W 設定秒數" },
-        { key: "Esc", press: 250, wait: 500, tip: "25. 按 Esc" },
-        { key: "Right", press: 250, wait: 500, tip: "26. 按 ⮕" },
-        { key: "Enter", press: 250, wait: 500, tip: "27. 按 ⏎ (1/2)" },
-        { key: "Enter", press: 250, wait: 500, tip: "27. 按 ⏎ (2/2)" },
+        { key: "Esc", press: 250, wait: 500, tip: "25. 按 退出賽事 Esc" },
+        { key: "Right", press: 250, wait: 500, tip: "26. 按 完成勁敵 ⮕" },
+        { key: "Enter", press: 250, wait: 500, tip: "27. 按 ⏎" },
+        { key: "Enter", press: 250, wait: 500, tip: "27. 按 ⏎" },
+        { key: "Enter", press: 250, wait: 500, tip: "27. 按 ⏎" },
         { sleepVar: "RivalLoadSec", countdown: true, tip: "28. 等待載入" },
         { key: "Enter", press: 250, wait: 500, tip: "29. 按 ⏎" },
         { sleepRange: [30, 40], countdown: true, tip: "29. 等待 {1} 秒" }
