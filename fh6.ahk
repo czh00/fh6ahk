@@ -1,6 +1,6 @@
 ; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
-; 版本: 1.4.5
+; 版本: 1.5.0
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
 ;       採用橫向懸浮按鈕 UI，並完美支援 Xbox 手把與鍵盤的雙向控制及狀態回饋。
 ; =================================================================
@@ -27,9 +27,10 @@ if !A_IsAdmin {
 global LoadVehicleDelay := 11   ; 等待車輛載入時間（秒）
 global LongPressDelay := 3.0     ; 手把長按偵測時間（秒）
 global EnableGamepad :=0  ; 【手把控制設定】1 表示預設啟用手把，0 表示預設停用
-global WHoldDuration := 36       ; 賺技能點時按住油門前進的時間（秒）
+global WHoldDuration := 26       ; 賺技能點時按住油門前進的時間（秒）
 GroupAdd("GameGroup","ahk_exe ForzaHorizon6.exe") ; 遊戲視窗標題名稱
 GroupAdd("GameGroup","ahk_exe notepad.exe") ; 測試用
+GroupAdd("GameGroup","遊戲 UI") ; 彈出式輸入UI視窗標題
 global GameTitle := "ahk_group GameGroup" ; 將視窗目標指向群組
 global ConfirmState := { result: false, isWaiting: false }
 
@@ -37,7 +38,8 @@ global ConfirmState := { result: false, isWaiting: false }
 global LoopCountLimit := 47       ; 技能行程循環次數
 global SkillPoints := 987         ; 技能行程技能點數限制
 global SkillBuyCarEnabled := true ; 點技能前先自動購買車輛
-global NewSequenceLoopLimit := 102 ; 賺技能點行程循環次數
+global NewSequenceLoopLimit := 99 ; 賺技能點行程循環次數
+global labcode := "167982162"      ; 賺技能點賽事分享代碼
 global BuyCarLoopLimit := 0      ; 買車行程循環次數
 global RivalLoopLimit := 0       ; 勁敵刷錢行程循環次數
 global RivalThrottleSec := 280    ; 勁敵刷錢按住油門時間（秒）
@@ -51,6 +53,7 @@ global Enable5AMWait := true       ; 啟用路由器重啟等待與自動確認
 global RebootHour := 5             ; 路由器重啟預估小時
 global RebootWaitMin := 3          ; 路由器重啟等待分鐘
 global IsWaitingReboot := false     ; 標記是否處於重啟等待倒數中
+global isPauseFocusCheck := false   ; 標記是否暫停遊戲視窗焦點偵測
 
 
 ; 【買車行程設定】
@@ -74,10 +77,10 @@ global IsSimplifyDividers := true ; 簡化進度條格數（簡化後每十次�
 
 ; [圖示顯示設定]
 global ShowIcon_Esc := true          ; 顯示按 Esc 圖示
-global ShowIcon_Rival := true        ; 顯示勁敵刷錢圖示
+global ShowIcon_NewSeq := true       ; 顯示賺技能點圖示
 global ShowIcon_Seq := true          ; 顯示點技能圖示
+global ShowIcon_Rival := true        ; 顯示勁敵刷錢圖示
 global ShowIcon_BuyCar := true       ; 顯示買車圖示
-global ShowIcon_NewSeq := false       ; 顯示賺技能點圖示
 global ShowIcon_Gas := false          ; 顯示油門圖示
 global ShowIcon_EnterSpam := true    ; 顯示連點 Enter 圖示
 global ShowIcon_Exit := true         ; 顯示安全門圖示
@@ -1638,6 +1641,8 @@ RunLButtonSequence(bypassConfirm := false) {
     CalculateActionMs(action) {
         if (action.HasOwnProp("sleep")) {
             return action.sleep
+        } else if (action.HasOwnProp("text")) {
+            return action.HasOwnProp("wait") ? action.wait : 1000
         } else {
             repeat := action.HasOwnProp("repeat") ? action.repeat : 1
             return (action.press + action.wait) * repeat
@@ -1701,13 +1706,13 @@ RunLButtonSequence(bypassConfirm := false) {
         for action in GetSkillStaticActions(1) {
             tmpFirstMs += CalculateActionMs(action)
         }
-        tmpFirstMs += singleNavMs + localEndMs + (navPress + navWait) * 2 + (enterPress + enterWait)
+        tmpFirstMs += singleNavMs + localEndMs + (navPress + 100) * 3 + (enterPress + enterWait)
 
         local tmpRestMs := 0
         for action in GetSkillStaticActions(2) {
             tmpRestMs += CalculateActionMs(action)
         }
-        tmpRestMs += singleNavMs + localEndMs + (navPress + navWait) * 2 + (enterPress + enterWait)
+        tmpRestMs += singleNavMs + localEndMs + (navPress + 100) * 3 + (enterPress + enterWait)
 
         totalMs += tmpFirstMs + (tmpRestMs * (LoopCountLimit - 1))
 
@@ -1801,13 +1806,13 @@ RunLButtonSequence(bypassConfirm := false) {
     for action in GetSkillStaticActions(1) {
         firstLoopMs += CalculateActionMs(action)
     }
-    firstLoopMs += navMs + endMs + (navPress + navWait) * 2 + (enterPress + enterWait)
+    firstLoopMs += navMs + endMs + (navPress + 100) * 3 + (enterPress + enterWait)
 
     restLoopMs := 0
     for action in GetSkillStaticActions(2) {
         restLoopMs += CalculateActionMs(action)
     }
-    restLoopMs += navMs + endMs + (navPress + navWait) * 2 + (enterPress + enterWait)
+    restLoopMs += navMs + endMs + (navPress + 100) * 3 + (enterPress + enterWait)
 
     TotalMs := CalculateTotalMs()
     sequenceTotalSec := Ceil(TotalMs / 1000)
@@ -1848,7 +1853,7 @@ RunLButtonSequence(bypassConfirm := false) {
         for action in skillTransitActions {
             transitMs += CalculateActionMs(action)
         }
-        Loop LoopCountLimit - 2 {
+        Loop LoopCountLimit - 1 {
             globalSegmentEnds.Push(globalSegmentEnds[globalSegmentEnds.Length] + restLoopMs + transitMs)
         }
         local finalEndMs := 0
@@ -2174,12 +2179,12 @@ RunLButtonSequence(bypassConfirm := false) {
 }
 
 WatchGameWindow() {
-    global GameTitle, MyGui, GuiX, GuiY, GuiH, isConfirming
+    global GameTitle, MyGui, GuiX, GuiY, GuiH, isConfirming, isPauseFocusCheck
     global isSequenceRunning, isNewSequenceRunning, isBuyCarRunning, isEnterSpamRunning, isGasOn, isRivalRunning
     static isShowing := false
     static lastX := -9999, lastY := -9999
 
-    if (isConfirming) {
+    if (isConfirming || isPauseFocusCheck) {
         return
     }
 
@@ -2286,7 +2291,7 @@ ToggleBuyCarSequence() {
 }
 
 RunNewSequence(bypassConfirm := false) {
-    global isNewSequenceRunning, GameTitle, MyGui, WHoldDuration, NewSequenceLoopLimit, currentNewLoopItem, newLoopStartTime, NewSequenceTotalMs, GuiX, GuiY, GuiH, isConfirming, AutoLoopEnabled, AutoLoopCount
+    global isNewSequenceRunning, GameTitle, MyGui, WHoldDuration, NewSequenceLoopLimit, currentNewLoopItem, newLoopStartTime, NewSequenceTotalMs, GuiX, GuiY, GuiH, isConfirming, AutoLoopEnabled, AutoLoopCount, labcode, isPauseFocusCheck
     global sequenceStartTime, sequenceTotalSec, globalSkillCost, globalSegmentEnds, globalTotalMs
     if (isNewSequenceRunning) {
         return
@@ -2298,30 +2303,36 @@ RunNewSequence(bypassConfirm := false) {
         { key: "esc", press: 250, wait: 1000, tip: "1. 按 Esc" },
         { key: "PgUp", press: 250, wait: 1000, tip: "2. 商店 按 PgUp (1/2)" },
         { key: "PgUp", press: 250, wait: 1000, tip: "3. 創意中心 按 PgUp (2/2)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "4. 按 ⏎ (1/2)" },
-        { key: "Enter", press: 250, wait: 1500, tip: "5. 按 ⏎ (2/2)" },
-        { key: "PgDn", press: 80, wait: 100, repeat: 14, tip: "6. 歷史紀錄 按 PgDn (第 {1} 次/共 7 次)" }, ;7格
-        { key: "PgUp", press: 250, wait: 1000, tip: "9. 按 PgUp " },
-        { sleep: 3000, countdown: true, tip: "等待 3 秒" },
-        { key: "Enter", press: 250, wait: 1000, tip: "7. 我的最愛 按 ⏎" },
-        { sleep: 3000, countdown: true, tip: "等待 3 秒" },
-        { key: "Enter", press: 250, wait: 2000, tip: "8. 單人 按 ⏎" },
-        { sleep: 4000, countdown: true, tip: "14. 車輛列表 等待 4 秒" },
-        { key: "y", press: 250, wait: 500, tip: "10. 篩選 按 Y" },
-        { key: "Enter", press: 250, wait: 500, tip: "11. 最愛 按 ⏎" },
-        { key: "esc", press: 250, wait: 500, tip: "12. 按 Esc" },
-        { key: "Enter", press: 250, wait: 500, tip: "13. 駕駛 按 ⏎" },
-        { sleep: 25000, countdown: true, tip: "14. 進場等待 25 秒" }
+        { key: "Enter", press: 250, wait: 1000, tip: "4. 按 ⏎" },
+        { key: "Down", press: 250, wait: 1000, tip: "5. 遊玩挑戰 按 ⬇" },
+        { key: "Enter", press: 250, wait: 1000, tip: "6. 按 ⏎" },
+        { key: "Backspace", press: 250, wait: 500, tip: "7. 搜尋 按 ⌫" },
+        { key: "Up", press: 250, wait: 1000, tip: "8. 分享代碼 按 Up" },
+        { key: "Enter", press: 250, wait: 1000, pauseFocus: true, tip: "9. 按 ⏎" },
+        { waitForBlack: true, timeout: 10000, estimatedWait: 1500, tip: "9.5. 偵測輸入介面黑色背景" },
+        { text: labcode, wait: 2000, tip: "10. 貼上分享代碼" },
+        { key: "Enter", press: 250, wait: 2000, tip: "10. 按 ⏎" },
+        { key: "Down", press: 250, wait: 1000, tip: "11. 確認 按 ⬇" },
+        { key: "Enter", press: 250, wait: 1000, tip: "12. 按 ⏎" },
+        { waitForYellow: true, estimatedWait: 2000, resumeFocus: true, tip: "12.5. 偵測黃色卡片載入" },
+        { key: "Enter", press: 350, wait: 1000, tip: "13. 按 ⏎" },
+        { sleep: 24000, countdown: true, tip: "14. 進場等待 24 秒" }
     ]
 
-    ; --- 循環步驟主體 (原本的賺技能點 5 個步驟) ---
+    ; --- 循環步驟主體 (原本的賺技能點 3 個步驟) ---
     loopActions := [
-        { key: "Enter", press: 250, wait: 500, tip: "15-1. 開車 按 ⏎ (250ms)" },
-        { key: "w", dynamicWaitVar: "WHoldDuration", wait: 1000, countdown: true, tip: "15-2. 按住 W 前進" },
-        { key: "x", press: 250, wait: 500, tip: "15-3. 重新開始 按 X  (250ms)" },
-        { key: "Enter", press: 250, wait: 500, tip: "15-4. 確定 按 ⏎ (250ms)" },
-        { key: "Enter", press: 250, wait: 500, tip: "15-5. 有時跳出的評價 按 ⏎ (250ms)" },
-        { sleep: 10000, countdown: true, tip: "15-6. 等待10秒" }
+        { key: "w", dynamicWaitVar: "WHoldDuration", wait: 1000, countdown: true, tip: "15-1. 按住 W 前進" },
+        { key: "Esc", press: 250, wait: 500, tip: "15-2. 重新開始 按 Esc  (250ms)" },
+        { sleep: 20000, countdown: true, tip: "15-3. 等待20秒" }
+    ]
+
+    ; --- 賺技能點最後一次循環步驟 (方便之後自由增刪與修改) ---
+    lastLoopActions := [
+        { key: "w", dynamicWaitVar: "WHoldDuration", wait: 1000, countdown: true, tip: "15-1. 按住 W 前進" },
+        { key: "Enter", press: 250, wait: 500, tip: "15-2. 結束循環 按 Enter" },
+        { sleep: 1000, tip: "等待 1 秒" },
+        { key: "Enter", press: 250, wait: 500, tip: "15-3. 評價 按 Enter" },
+        { sleep: 20000, countdown: true, tip: "15-4. 等待20秒" }
     ]
 
     CalculateActionMs(action) {
@@ -2329,36 +2340,34 @@ RunNewSequence(bypassConfirm := false) {
             return action.sleep
         } else if (action.HasOwnProp("dynamicWaitVar")) {
             return (%action.dynamicWaitVar% * 1000) + action.wait
+        } else if (action.HasOwnProp("text")) {
+            return action.HasOwnProp("wait") ? action.wait : 1000
+        } else if (action.HasOwnProp("waitForYellow")) {
+            return action.HasOwnProp("estimatedWait") ? action.estimatedWait : 2000
+        } else if (action.HasOwnProp("waitForBlack")) {
+            return action.HasOwnProp("estimatedWait") ? action.estimatedWait : 1500
         } else {
             repeat := action.HasOwnProp("repeat") ? action.repeat : 1
             return (action.press + action.wait) * repeat
         }
     }
 
-    CalculateTotalMs(limit, includeAutoLoop := false) {
+    CalculateActionListMs(actionList) {
         local total := 0
-        for action in preActions {
+        for action in actionList {
             total += CalculateActionMs(action)
         }
+        return total
+    }
 
-        local oneLoopMs := 0
-        local xActionMs := 0
-        for action in loopActions {
-            actMs := CalculateActionMs(action)
-            oneLoopMs += actMs
-            if (action.HasOwnProp("key") && action.key == "x") {
-                xActionMs := actMs
-            }
-        }
+    CalculateTotalMs(limit, includeAutoLoop := false) {
+        local total := CalculateActionListMs(preActions)
 
-        ; 總循環時間：普通循環次數 * 單次循環時間
-        total += oneLoopMs * limit
-
-        if (limit > 0) {
-            ; 最後一次循環會跳過 X，需扣除最後一次的 X 鍵執行時間
-            total -= xActionMs
-            ; 最後一次循環的 10 秒等待 (10000ms) 會變成 25 秒等待 (25000ms)，需加上額外 15 秒 (15000ms)
-            total += 15000
+        if (limit > 1) {
+            total += CalculateActionListMs(loopActions) * (limit - 1)
+            total += CalculateActionListMs(lastLoopActions)
+        } else if (limit == 1) {
+            total += CalculateActionListMs(lastLoopActions)
         }
 
         ; 若啟用自動雙循環，加上點技能（與買車）的預估時間，以及 30 秒過場等待時間
@@ -2518,9 +2527,12 @@ RunNewSequence(bypassConfirm := false) {
     }
 
     SleepAndCheck(ms) {
-        global isNewSequenceRunning, GameTitle, MyGui
+        global isNewSequenceRunning, GameTitle, MyGui, isPauseFocusCheck
         loop Ceil(ms / 100) {
-            if (!isNewSequenceRunning || (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
+            if (!isNewSequenceRunning) {
+                return false
+            }
+            if (!isPauseFocusCheck && (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
                 return false
             }
             Sleep(100)
@@ -2529,10 +2541,10 @@ RunNewSequence(bypassConfirm := false) {
     }
 
     CountdownSleep(totalMs, prefix) {
-        global isNewSequenceRunning, GameTitle, MyGui
+        global isNewSequenceRunning, GameTitle, MyGui, isPauseFocusCheck
         startTime := A_TickCount
         while (isNewSequenceRunning && (A_TickCount - startTime < totalMs)) {
-            if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
+            if (!isPauseFocusCheck && (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
                 return false
             }
             elapsedMs := A_TickCount - startTime
@@ -2600,20 +2612,9 @@ RunNewSequence(bypassConfirm := false) {
         preMs += CalculateActionMs(action)
     }
  
-    local normalLastSleep := 10000
-    local finalLastSleep := 25000
-
-    ; 計算普通單次與最後一次循環時間
-    oneLoopMs := 0
-    xActionMs := 0
-    for action in loopActions {
-        actMs := CalculateActionMs(action)
-        oneLoopMs += actMs
-        if (action.HasOwnProp("key") && action.key == "x") {
-            xActionMs := actMs
-        }
-    }
-    finalLoopMs := oneLoopMs - xActionMs + (finalLastSleep - normalLastSleep)
+    ; 計算單次與最後一次循環時間
+    oneLoopMs := CalculateActionListMs(loopActions)
+    finalLoopMs := CalculateActionListMs(lastLoopActions)
  
     ; 設定全域進度條變數
     global HasPreparationPhase
@@ -2638,7 +2639,15 @@ RunNewSequence(bypassConfirm := false) {
     ; --- 執行前置步驟 (僅一次) ---
     loopBreak := false
     for action in preActions {
-        if (!isNewSequenceRunning || (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
+        if (action.HasOwnProp("pauseFocus") && action.pauseFocus) {
+            isPauseFocusCheck := true
+        }
+
+        if (!isNewSequenceRunning) {
+            loopBreak := true
+            break
+        }
+        if (!isPauseFocusCheck && (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
             loopBreak := true
             break
         }
@@ -2654,6 +2663,22 @@ RunNewSequence(bypassConfirm := false) {
                     loopBreak := true
                     break
                 }
+            }
+        } else if (action.HasOwnProp("text")) {
+            ShowTip(action.tip)
+            if (!SendTextAction(action.text, action.HasOwnProp("wait") ? action.wait : 1000, &isNewSequenceRunning)) {
+                loopBreak := true
+                break
+            }
+        } else if (action.HasOwnProp("waitForYellow")) {
+            if (!DetectYellowCard()) {
+                loopBreak := true
+                break
+            }
+        } else if (action.HasOwnProp("waitForBlack")) {
+            if (!DetectBlackBelowProgress()) {
+                loopBreak := true
+                break
             }
         } else {
             repeat := action.HasOwnProp("repeat") ? action.repeat : 1
@@ -2678,6 +2703,10 @@ RunNewSequence(bypassConfirm := false) {
                     break
                 }
             }
+        }
+
+        if (action.HasOwnProp("resumeFocus") && action.resumeFocus) {
+            isPauseFocusCheck := false
         }
     }
 
@@ -2708,21 +2737,12 @@ RunNewSequence(bypassConfirm := false) {
             }
 
             isLastLoop := (A_Index == NewSequenceLoopLimit)
+            currentActions := isLastLoop ? lastLoopActions : loopActions
 
-            for action in loopActions {
-                ; 循環最後一次時，跳過按 X 鍵 (步驟 15-3)
-                if (isLastLoop && action.HasOwnProp("key") && action.key == "x") {
-                    continue
-                }
-
+            for action in currentActions {
                 if (action.HasOwnProp("sleep")) {
-                    ; 循環最後一次時，將等待10秒 (步驟 15-5) 改為等待25秒
                     sleepMs := action.sleep
                     tipText := action.tip
-                    if (isLastLoop && action.sleep == 10000) {
-                        sleepMs := 25000
-                        tipText := "15-5. 等待25秒 (最後一次循環)"
-                    }
 
                     if (action.HasOwnProp("countdown")) {
                         if (!CountdownSleep(sleepMs, tipText)) {
@@ -3187,8 +3207,9 @@ CheckEveryHourly() {
 }
 
 StopGasAndClean() {
-    global MyGui, isGasOn, isSequenceRunning, isEnterSpamRunning, isNewSequenceRunning, isBuyCarRunning, ProgressText, PreProgressBar, ProgressBar, LoopProgressBar, GuiX, GuiY, GuiH, currentStepText, isRivalRunning, AutoLoopCount, HasPreparationPhase, StopAfterCurrentLoop, SkipBtn
+    global MyGui, isGasOn, isSequenceRunning, isEnterSpamRunning, isNewSequenceRunning, isBuyCarRunning, ProgressText, PreProgressBar, ProgressBar, LoopProgressBar, GuiX, GuiY, GuiH, currentStepText, isRivalRunning, AutoLoopCount, HasPreparationPhase, StopAfterCurrentLoop, SkipBtn, isPauseFocusCheck
 
+    isPauseFocusCheck := false
     isGasOn := false
     isSequenceRunning := false
     isEnterSpamRunning := false
@@ -3820,4 +3841,192 @@ SendKey(keyName, pressDuration, waitDuration, &isRunning) {
     }
  
     return isRunning
+}
+SendTextAction(strText, waitDuration, &isRunning) {
+    if (!isRunning) {
+        return false
+    }
+
+    A_Clipboard := strText
+    Sleep(100)
+    Send("^v")
+    if (waitDuration > 0) {
+        Sleep(waitDuration)
+    }
+
+    return isRunning
+}
+
+CreateDashedRegionString(w, h, thickness := 3, dashLen := 14, gapLen := 8) {
+    rects := []
+
+    ; 上邊界
+    x := 0
+    while (x < w) {
+        x2 := Min(x + dashLen, w)
+        rects.Push(Format("{1}-0 {2}-0 {2}-{3} {1}-{3} {1}-0", x, x2, thickness))
+        x += dashLen + gapLen
+    }
+
+    ; 下邊界
+    x := 0
+    while (x < w) {
+        x2 := Min(x + dashLen, w)
+        rects.Push(Format("{1}-{2} {3}-{2} {3}-{4} {1}-{4} {1}-{2}", x, h - thickness, x2, h))
+        x += dashLen + gapLen
+    }
+
+    ; 左邊界
+    y := 0
+    while (y < h) {
+        y2 := Min(y + dashLen, h)
+        rects.Push(Format("0-{1} {2}-{1} {2}-{3} 0-{3} 0-{1}", y, thickness, y2))
+        y += dashLen + gapLen
+    }
+
+    ; 右邊界
+    y := 0
+    while (y < h) {
+        y2 := Min(y + dashLen, h)
+        rects.Push(Format("{1}-{2} {3}-{2} {3}-{4} {1}-{4} {1}-{2}", w - thickness, y, w, y2))
+        y += dashLen + gapLen
+    }
+
+    regionStr := ""
+    for r in rects {
+        regionStr .= r . "  "
+    }
+    return regionStr
+}
+
+DetectYellowCard(timeoutMs := 15000) {
+    global GameTitle, MyGui, isNewSequenceRunning, isPauseFocusCheck
+    startTime := A_TickCount
+
+    try {
+        WinGetPos(&wX, &wY, &wW, &wH, GameTitle)
+    } catch {
+        wX := 0, wY := 0, wW := A_ScreenWidth, wH := A_ScreenHeight
+    }
+
+    ; 畫面中央偏左黃色賽事卡片區域 (25% ~ 55% 寬度, 20% ~ 85% 高度)
+    x1 := wX + Floor(wW * 0.25)
+    y1 := wY + Floor(wH * 0.20)
+    x2 := wX + Floor(wW * 0.55)
+    y2 := wY + Floor(wH * 0.85)
+
+    w := x2 - x1
+    h := y2 - y1
+
+    ; 建立黃色虛線框 GUI 覆蓋顯示
+    boxGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +Owner")
+    boxGui.BackColor := "Yellow"
+    regionStr := CreateDashedRegionString(w, h, 3, 14, 8)
+    WinSetRegion(regionStr, boxGui.Hwnd)
+    boxGui.Show("X" x1 " Y" y1 " W" w " H" h " NoActivate")
+
+    ; 搜尋範圍微向內縮 5 像素，避免 PixelSearch 掃描到虛線框本身
+    searchX1 := x1 + 5
+    searchY1 := y1 + 5
+    searchX2 := x2 - 5
+    searchY2 := y2 - 5
+
+    targetColor1 := 0xFFD700
+    targetColor2 := 0xFFDF00
+    variation := 40
+
+    found := false
+    while (isNewSequenceRunning) {
+        if (!isPauseFocusCheck && !WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
+            break
+        }
+
+        CoordMode("Pixel", "Screen")
+        if PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, targetColor1, variation) || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, targetColor2, variation) {
+            found := true
+            Sleep(500) ; 偵測到黃色卡片後緩衝等待 500ms，確保 UI 選單動畫結束並獲得按鍵焦點
+            try {
+                WinActivate(GameTitle)
+            }
+            break
+        }
+
+        elapsedSec := Round((A_TickCount - startTime) / 1000, 1)
+        ShowTip("12.5. 等待黃色卡片載入中... (" elapsedSec "s)")
+        Sleep(150)
+    }
+
+    try {
+        boxGui.Destroy()
+    }
+
+    return (found && isNewSequenceRunning)
+}
+
+DetectBlackBelowProgress(timeoutMs := 0) {
+    global MyGui, GameTitle, GuiX, GuiY, GuiH, isNewSequenceRunning, isPauseFocusCheck
+    startTime := A_TickCount
+
+    ; 確定基準位置 (進度條位置或遊戲視窗位置)
+    pX := GuiX
+    pY := GuiY
+    pH := GuiH > 0 ? GuiH : 30
+    if (pX <= 0 && pY <= 0) {
+        try {
+            WinGetPos(&wX, &wY, &wW, &wH, GameTitle)
+            pX := wX + 45
+            pY := wY + 3
+        } catch {
+            pX := 100
+            pY := 100
+        }
+    }
+
+    ; 進度條外下方位置 (進度條尾端 x+500~630, 下方 y+pH+30~90 區域)
+    x1 := pX + 800
+    y1 := pY + pH + 30
+    x2 := pX + 930
+    y2 := pY + pH + 90
+
+    w := x2 - x1
+    h := y2 - y1
+
+    ; 建立黃色虛線框 GUI 覆蓋顯示偵測範圍
+    boxGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +Owner")
+    boxGui.BackColor := "Yellow"
+    regionStr := CreateDashedRegionString(w, h, 3, 14, 8)
+    WinSetRegion(regionStr, boxGui.Hwnd)
+    boxGui.Show("X" x1 " Y" y1 " W" w " H" h " NoActivate")
+
+    searchX1 := x1 + 5
+    searchY1 := y1 + 5
+    searchX2 := x2 - 5
+    searchY2 := y2 - 5
+
+    ; 黑色 / 暗色目標顏色 (RGB 0x000000, 容差 55，符合黑色暗影背景)
+    targetColor := 0x000000
+    variation := 55
+
+    found := false
+    while (isNewSequenceRunning) {
+        if (!isPauseFocusCheck && !WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
+            break
+        }
+
+        CoordMode("Pixel", "Screen")
+        if PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, targetColor, variation) {
+            found := true
+            break
+        }
+
+        elapsedSec := Round((A_TickCount - startTime) / 1000, 1)
+        ShowTip("9.5. 等待輸入介面展開(偵測黑色)... (" elapsedSec "s)")
+        Sleep(150)
+    }
+
+    try {
+        boxGui.Destroy()
+    }
+
+    return (found && isNewSequenceRunning)
 }
