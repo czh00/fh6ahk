@@ -27,7 +27,7 @@ if !A_IsAdmin {
 global LoadVehicleDelay := 11   ; 等待車輛載入時間（秒）
 global LongPressDelay := 3.0     ; 手把長按偵測時間（秒）
 global EnableGamepad :=0  ; 【手把控制設定】1 表示預設啟用手把，0 表示預設停用
-global WHoldDuration := 26       ; 賺技能點時按住油門前進的時間（秒）
+global WHoldDuration := 30       ; 賺技能點時按住油門前進的時間（秒）
 GroupAdd("GameGroup","ahk_exe ForzaHorizon6.exe") ; 遊戲視窗標題名稱
 GroupAdd("GameGroup","ahk_exe notepad.exe") ; 測試用
 GroupAdd("GameGroup","遊戲 UI") ; 彈出式輸入UI視窗標題
