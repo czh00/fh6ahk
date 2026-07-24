@@ -2345,7 +2345,7 @@ RunNewSequence(bypassConfirm := false) {
     loopActions := [
         { key: "w", dynamicWaitVar: "WHoldDuration", wait: 1000, countdown: true, tip: "15-1. 按住 W 前進" },
         { key: "Esc", press: 250, wait: 500, tip: "15-2. 重新開始 按 Esc  (250ms)" },
-        { sleep: 20000, countdown: true, tip: "15-3. 等待20秒" }
+        { sleep: 16000, countdown: true, tip: "15-3. 等待16秒" }
     ]
 
     ; --- 賺技能點最後一次循環步驟 (方便之後自由增刪與修改) ---
@@ -3879,46 +3879,45 @@ SendTextAction(strText, waitDuration, &isRunning) {
     return isRunning
 }
 
-CreateDashedRegionString(w, h, thickness := 3, dashLen := 14, gapLen := 8) {
-    rects := []
+CreateDashedBoxGui(x1, y1, w, h, color := "0x00FFFF", thickness := 2, dashLen := 12, gapLen := 6) {
+    boxGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +Owner")
+    boxGui.BackColor := "0x000001"
+    WinSetTransColor("0x000001", boxGui.Hwnd)
 
     ; 上邊界
     x := 0
     while (x < w) {
-        x2 := Min(x + dashLen, w)
-        rects.Push(Format("{1}-0 {2}-0 {2}-{3} {1}-{3} {1}-0", x, x2, thickness))
+        segW := Min(dashLen, w - x)
+        boxGui.AddText("X" x " Y0 W" segW " H" thickness " Background" color)
         x += dashLen + gapLen
     }
 
     ; 下邊界
     x := 0
     while (x < w) {
-        x2 := Min(x + dashLen, w)
-        rects.Push(Format("{1}-{2} {3}-{2} {3}-{4} {1}-{4} {1}-{2}", x, h - thickness, x2, h))
+        segW := Min(dashLen, w - x)
+        boxGui.AddText("X" x " Y" (h - thickness) " W" segW " H" thickness " Background" color)
         x += dashLen + gapLen
     }
 
     ; 左邊界
     y := 0
     while (y < h) {
-        y2 := Min(y + dashLen, h)
-        rects.Push(Format("0-{1} {2}-{1} {2}-{3} 0-{3} 0-{1}", y, thickness, y2))
+        segH := Min(dashLen, h - y)
+        boxGui.AddText("X0 Y" y " W" thickness " H" segH " Background" color)
         y += dashLen + gapLen
     }
 
     ; 右邊界
     y := 0
     while (y < h) {
-        y2 := Min(y + dashLen, h)
-        rects.Push(Format("{1}-{2} {3}-{2} {3}-{4} {1}-{4} {1}-{2}", w - thickness, y, w, y2))
+        segH := Min(dashLen, h - y)
+        boxGui.AddText("X" (w - thickness) " Y" y " W" thickness " H" segH " Background" color)
         y += dashLen + gapLen
     }
 
-    regionStr := ""
-    for r in rects {
-        regionStr .= r . "  "
-    }
-    return regionStr
+    boxGui.Show("X" x1 " Y" y1 " W" w " H" h " NoActivate")
+    return boxGui
 }
 
 DetectYellowCard(timeoutMs := 15000) {
@@ -3931,23 +3930,19 @@ DetectYellowCard(timeoutMs := 15000) {
         wX := 0, wY := 0, wW := A_ScreenWidth, wH := A_ScreenHeight
     }
 
-    ; 畫面中央偏左黃色賽事卡片區域 (25% ~ 55% 寬度, 20% ~ 85% 高度)
-    x1 := wX + Floor(wW * 0.25)
-    y1 := wY + Floor(wH * 0.20)
-    x2 := wX + Floor(wW * 0.55)
-    y2 := wY + Floor(wH * 0.85)
+    ; 根據截圖精確設定黃色賽事卡片相對區域 (約 25.5% ~ 49% 寬度, 21.5% ~ 81.5% 高度)
+    x1 := wX + Floor(wW * 0.255)
+    y1 := wY + Floor(wH * 0.215)
+    x2 := wX + Floor(wW * 0.490)
+    y2 := wY + Floor(wH * 0.815)
 
     w := x2 - x1
     h := y2 - y1
 
-    ; 建立黃色虛線框 GUI 覆蓋顯示
-    boxGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +Owner")
-    boxGui.BackColor := "Yellow"
-    regionStr := CreateDashedRegionString(w, h, 3, 14, 8)
-    WinSetRegion(regionStr, boxGui.Hwnd)
-    boxGui.Show("X" x1 " Y" y1 " W" w " H" h " NoActivate")
+    ; 建立細虛線外框 GUI 覆蓋顯示偵測範圍 (亮青色高對比細虛線外框，中央完全透明)
+    boxGui := CreateDashedBoxGui(x1, y1, w, h, "0x00FFFF", 2, 12, 6)
 
-    ; 搜尋範圍微向內縮 5 像素，避免 PixelSearch 掃描到虛線框本身
+    ; 搜尋範圍微向內縮 5 像素，避免 PixelSearch 掃描到邊框
     searchX1 := x1 + 5
     searchY1 := y1 + 5
     searchX2 := x2 - 5
@@ -4004,12 +3999,8 @@ DetectBlackBelowProgress(timeoutMs := 0) {
     w := x2 - x1
     h := y2 - y1
 
-    ; 建立黃色虛線框 GUI 覆蓋顯示偵測範圍
-    boxGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +Owner")
-    boxGui.BackColor := "Yellow"
-    regionStr := CreateDashedRegionString(w, h, 3, 14, 8)
-    WinSetRegion(regionStr, boxGui.Hwnd)
-    boxGui.Show("X" x1 " Y" y1 " W" w " H" h " NoActivate")
+    ; 建立細虛線外框 GUI 覆蓋顯示偵測範圍 (亮青色高對比細虛線外框，中央完全透明)
+    boxGui := CreateDashedBoxGui(x1, y1, w, h, "0x00FFFF", 2, 12, 6)
 
     searchX1 := x1 + 5
     searchY1 := y1 + 5
