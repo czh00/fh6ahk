@@ -1,6 +1,6 @@
 ; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
-; 版本: 1.5.0
+; 版本: 1.5.1
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
 ;       採用橫向懸浮按鈕 UI，並完美支援 Xbox 手把與鍵盤的雙向控制及狀態回饋。
 ; =================================================================
@@ -1539,6 +1539,28 @@ RunLButtonSequence(bypassConfirm := false) {
 
     finalEndActions := [
         ; --- 技能行程最後一次結束的步驟 ---
+        { key: "Enter", press: 250, wait: 1000, tip: "按 ⏎" },
+        { key: "Down", press: 250, wait: 600, tip: "按 ⬇" },
+        { key: "Enter", press: 250, wait: 1000, tip: "按 ⏎" },
+        { key: "y", press: 250, wait: 1000, tip: "篩選 按 Y" },
+        { key: "Enter", press: 250, wait: 1000, tip: "按 ⏎" },
+        { key: "esc", press: 250, wait: 1000, tip: "按 Esc" },
+        { key: "Enter", press: 250, wait: 1000, tip: "選車 按 ⏎" },
+        { key: "Down", press: 250, wait: 500, tip: "乘駕車輛 按 ⬇" },
+        { key: "Enter", press: 250, wait: 5000, tip: "按 ⏎" },
+        { key: "y", press: 250, wait: 1000, tip: "篩選 按 Y" },
+        { key: "x", press: 250, wait: 1000, tip: "重置 按 X" },
+        { key: "esc", press: 250, wait: 1000, tip: "按 Esc" },
+        { key: "x", press: 250, wait: 450, tip: "排序 按 X" },
+        { key: "Down", press: 80, wait: 100, repeat: 12, tip: "最近新增 按 ⬇( {1}/6)" },
+        { key: "Enter", press: 250, wait: 1000, tip: "按 ⏎" },
+        { key: "Backspace", press: 250, wait: 1000, tip: "篩選 按 ⌫" },
+        { key: "Enter", press: 250, wait: 600, tip: "到最新車輛 按 ⏎ " },
+        { key: "Enter", press: 250, wait: 600, tip: "開啟選單按 ⏎" },
+        { key: "Down", press: 80, wait: 100, repeat: 10, tip: "從車庫移除 按 ⬇( {1}/5)" },
+        { key: "Enter", press: 250, wait: 600, tip: "按 ⏎" },
+        { key: "Down", press: 250, wait: 600, tip: "確定移除 按 ⬇" },
+        { key: "Enter", press: 250, wait: 600, tip: "按 ⏎" },
         { key: "Esc", press: 250, wait: 1200, repeat: 3, tip: "全部行程結束: 按 Esc ({1}/3)" }
     ]
 
@@ -3964,29 +3986,20 @@ DetectYellowCard(timeoutMs := 15000) {
 }
 
 DetectBlackBelowProgress(timeoutMs := 0) {
-    global MyGui, GameTitle, GuiX, GuiY, GuiH, isNewSequenceRunning, isPauseFocusCheck
+    global GameTitle, MyGui, isNewSequenceRunning, isPauseFocusCheck
     startTime := A_TickCount
 
-    ; 確定基準位置 (進度條位置或遊戲視窗位置)
-    pX := GuiX
-    pY := GuiY
-    pH := GuiH > 0 ? GuiH : 30
-    if (pX <= 0 && pY <= 0) {
-        try {
-            WinGetPos(&wX, &wY, &wW, &wH, GameTitle)
-            pX := wX + 45
-            pY := wY + 3
-        } catch {
-            pX := 100
-            pY := 100
-        }
+    try {
+        WinGetPos(&wX, &wY, &wW, &wH, GameTitle)
+    } catch {
+        wX := 0, wY := 0, wW := A_ScreenWidth, wH := A_ScreenHeight
     }
 
-    ; 進度條外下方位置 (進度條尾端 x+500~630, 下方 y+pH+30~90 區域)
-    x1 := pX + 800
-    y1 := pY + pH + 30
-    x2 := pX + 930
-    y2 := pY + pH + 90
+    ; 畫面正中央區域 (35% ~ 65% 寬度, 35% ~ 65% 高度)
+    x1 := wX + Floor(wW * 0.35)
+    y1 := wY + Floor(wH * 0.35)
+    x2 := wX + Floor(wW * 0.65)
+    y2 := wY + Floor(wH * 0.65)
 
     w := x2 - x1
     h := y2 - y1
