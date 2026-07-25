@@ -2668,7 +2668,10 @@ RunNewSequence(bypassConfirm := false) {
             isPauseProgressBar := false
         }
 
-        for action in preActions {
+        preIdx := 1
+        while (preIdx <= preActions.Length) {
+            action := preActions[preIdx]
+
             if (action.HasOwnProp("pauseFocus") && action.pauseFocus) {
                 isPauseFocusCheck := true
             }
@@ -2728,8 +2731,14 @@ RunNewSequence(bypassConfirm := false) {
                 totalRatingPauseMs += (A_TickCount - pauseStart)
                 isPauseProgressBar := false
                 if (!success) {
-                    loopBreak := true
-                    break
+                    if (!isNewSequenceRunning) {
+                        loopBreak := true
+                        break
+                    }
+                    isPauseFocusCheck := false
+                    ShowTip("12.5. 超時未偵測到黃卡：已按 Esc 退出，重試返回第 6 步...")
+                    preIdx := 6
+                    continue
                 }
             } else if (action.HasOwnProp("waitForBlack")) {
                 isPauseProgressBar := true
@@ -2780,6 +2789,8 @@ RunNewSequence(bypassConfirm := false) {
             if (action.HasOwnProp("resumeFocus") && action.resumeFocus) {
                 isPauseFocusCheck := false
             }
+
+            preIdx++
         }
 
         if (loopBreak || !isNewSequenceRunning) {
@@ -4174,15 +4185,15 @@ DetectYellowCard(timeoutMs := 15000) {
             break
         }
 
-        ; 若等待超過 10 秒仍未偵測到黃色卡片，補充發送一次 ⬇ Down 鍵與 Enter 鍵，隨後恢復繼續偵測
+        ; 若等待超過 10 秒仍未偵測到黃色卡片，按 Esc 退出並返回第 6 步重試
         if (A_TickCount - lastPressTime >= 10000) {
-            ShowTip("12.5. 等待超過 10 秒：對焦遊戲視窗並補充按下 ⬇ 與 ⏎...")
+            ShowTip("12.5. 等待超過 10 秒未偵測到黃卡：對焦遊戲視窗並按 Esc 退出...")
             try {
                 WinActivate(GameTitle)
             }
-            SendKey("Down", 250, 400, &isNewSequenceRunning)
-            SendKey("Enter", 250, 500, &isNewSequenceRunning)
-            lastPressTime := A_TickCount
+            SendKey("Esc", 250, 1000, &isNewSequenceRunning)
+            found := false
+            break
         }
 
         elapsedSec := Round((A_TickCount - startTime) / 1000, 1)
