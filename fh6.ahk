@@ -1,6 +1,6 @@
 ; =================================================================
 ; Forza Horizon 6 (FH6) 自動化輔助腳本
-; 版本: 1.5.2
+; 版本: 1.5.5
 ; 說明: 提供買車、賺技能點、點技能、抽轉盤與油門自動化等五大功能行程，
 ;       採用橫向懸浮按鈕 UI，並完美支援 Xbox 手把與鍵盤的雙向控制及狀態回饋。
 ; =================================================================
@@ -37,13 +37,12 @@ global ConfirmState := { result: false, isWaiting: false }
 global LoopCountLimit := 47       ; 技能行程循環次數
 global SkillPoints := 987         ; 技能行程技能點數限制
 global SkillBuyCarEnabled := true ; 點技能前先自動購買車輛
-global NewSequenceLoopLimit := 99 ; 賺技能點行程循環次數
+global NewSequenceLoopLimit := 110 ; 賺技能點行程循環次數
 global labcode := "167982162"      ; 賺技能點賽事分享代碼
 global BuyCarLoopLimit := 0      ; 買車行程循環次數
 global RivalLoopLimit := 0       ; 勁敵刷錢行程循環次數
-global RivalThrottleSec := 280    ; 勁敵刷錢按住油門時間（秒）
+global RivalThrottleSec := 300    ; 勁敵刷錢按住油門時間（秒）
 global RivalLoadSec := 10          ; 勁敵刷錢等待載入時間（秒）
-global RivalTransitionSec := 50   ; 勁敵刷錢等待過場時間（秒）
 global RivalEndHour := 0          ; 勁敵刷錢預計結束時間（時）
 global AutoLoopEnabled := false    ; 自動雙循環開關
 global AutoLoopCount := 0          ; 自動雙循環當前次數
@@ -56,6 +55,7 @@ global isPauseFocusCheck := false   ; 標記是否暫停遊戲視窗焦點偵測
 global isPauseProgressBar := false  ; 標記是否暫停進度條更新
 global totalRatingPauseMs := 0      ; 綠色評分與重新進場過場的累積暫停補償時間（毫秒）
 global pauseStart := 0              ; 記錄當前過場/色塊偵測開始時間（毫秒）
+global ShowDashedBox := false        ; 設定是否顯示偵測顏色的虛線框 (true: 顯示, false: 隱藏)
 
 
 ; 【買車行程設定】
@@ -152,48 +152,48 @@ global SkillPath := "808" ; 設定車型以決定預設路徑，可填入 "808",
 
 GetSkillStaticActions(loopIdx) {
     local actions := [
-        { key: "Down", press: 250, wait: 450, tip: "20. 拍賣場 按 ⬇" },
-        { key: "Enter", press: 250, wait: 600, tip: "21. 按 ⏎" },
-        { key: "Down", press: 250, wait: 450, tip: "22. 開始拍賣會 按 ⬇" },
-        { key: "Enter", press: 250, wait: 600, tip: "23. 按 ⏎" },
+        { key: "Down", press: 80, wait: 450, tip: "20. 拍賣場 按 ⬇" },
+        { key: "Enter", press: 80, wait: 600, tip: "21. 按 ⏎" },
+        { key: "Down", press: 80, wait: 450, tip: "22. 開始拍賣會 按 ⬇" },
+        { key: "Enter", press: 80, wait: 600, tip: "23. 按 ⏎" },
         { sleep: 2000, countdown: true, tip: "等待 2 秒" },
-        { key: "x", press: 250, wait: 450, tip: "24 .排序 按 X" },
+        { key: "x", press: 80, wait: 450, tip: "24 .排序 按 X" },
         { key: "Down", press: 80, wait: 100, repeat: 12, tip: "25. 最近新增 按 ⬇( {1}/6)" }, ;6格
-        { key: "Enter", press: 250, wait: 1000, tip: "26. 按 ⏎" },
-        { key: "Backspace", press: 250, wait: 1000, tip: "27. 篩選 按 ⌫" },
-        { key: "Enter", press: 250, wait: 600, tip: "28. 到最新車輛 按 ⏎ " }
+        { key: "Enter", press: 80, wait: 1000, tip: "26. 按 ⏎" },
+        { key: "Backspace", press: 80, wait: 1000, tip: "27. 篩選 按 ⌫" },
+        { key: "Enter", press: 80, wait: 600, tip: "28. 到最新車輛 按 ⏎ " }
     ]
  
     if (loopIdx == 1) {
         ; 循環前：選取並駕駛第一輛車
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "29. 按 ⏎" })
-        actions.Push({ key: "Down", press: 250, wait:600, tip: "30. 駕駛 按 ⬇" })
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "31. 按 ⏎" })
+        actions.Push({ key: "Enter", press: 80, wait: 600, tip: "29. 按 ⏎" })
+        actions.Push({ key: "Down", press: 80, wait:600, tip: "30. 駕駛 按 ⬇" })
+        actions.Push({ key: "Enter", press: 80, wait: 600, tip: "31. 按 ⏎" })
         actions.Push({ sleep: 5000, countdown: true, tip: "等待載入 5 秒" })
     } else {
         ; 循環中：選取第二輛車駕駛，並刪除第一輛車
-        actions.Push({ key: "Down", press: 250, wait: 450, tip: "29. 第二輛車 按 ⬇" })
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "30. 按 ⏎" })
-        actions.Push({ key: "Down", press: 250, wait: 600, tip: "32. 駕駛 按 ⬇" })
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "33. 按 ⏎" })
+        actions.Push({ key: "Down", press: 80, wait: 450, tip: "29. 第二輛車 按 ⬇" })
+        actions.Push({ key: "Enter", press: 80, wait: 600, tip: "30. 按 ⏎" })
+        actions.Push({ key: "Down", press: 80, wait: 600, tip: "32. 駕駛 按 ⬇" })
+        actions.Push({ key: "Enter", press: 80, wait: 600, tip: "33. 按 ⏎" })
         actions.Push({ sleep: 5000, countdown: true, tip: "等待載入 5 秒" })
-        actions.Push({ key: "Up", press: 250, wait: 450, tip: "34. 到第一輛車 按 ⬆" })
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "35. 開啟選單按 ⏎" })
+        actions.Push({ key: "Up", press: 80, wait: 450, tip: "34. 到第一輛車 按 ⬆" })
+        actions.Push({ key: "Enter", press: 80, wait: 600, tip: "35. 開啟選單按 ⏎" })
         actions.Push({ key: "Down", press: 80, wait: 100, repeat: 10, tip: "36. 從車庫移除 按 ⬇( {1}/5)" }) ;5格
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "37. 按 ⏎" })
-        actions.Push({ key: "Down", press: 250, wait: 600, tip: "38. 確定移除 按 ⬇" })
-        actions.Push({ key: "Enter", press: 250, wait: 600, tip: "39. 按 ⏎" })
+        actions.Push({ key: "Enter", press: 80, wait: 600, tip: "37. 按 ⏎" })
+        actions.Push({ key: "Down", press: 80, wait: 600, tip: "38. 確定移除 按 ⬇" })
+        actions.Push({ key: "Enter", press: 80, wait: 600, tip: "39. 按 ⏎" })
         actions.Push({ sleep: 2000, countdown: true, tip: "等待 2 秒" })
     }
  
     ; 剩餘通用步驟
-    actions.Push({ key: "Esc", press: 250, wait: 1200, tip: "40. 按 Esc (1/2)" })
-    actions.Push({ key: "Esc", press: 250, wait: 1200, tip: "41. 按 Esc (2/2)" })
-    actions.Push({ key: "Right", press: 250, wait: 600, tip: "42. 按 ⮕" })
-    actions.Push({ key: "Enter", press: 250, wait: 600, tip: "43. 按 ⏎" })
+    actions.Push({ key: "Esc", press: 80, wait: 1200, tip: "40. 按 Esc (1/2)" })
+    actions.Push({ key: "Esc", press: 80, wait: 1200, tip: "41. 按 Esc (2/2)" })
+    actions.Push({ key: "Right", press: 80, wait: 600, tip: "42. 按 ⮕" })
+    actions.Push({ key: "Enter", press: 80, wait: 600, tip: "43. 按 ⏎" })
     actions.Push({ key: "Down", press: 80, wait: 100, repeat: 14, tip: "44. 點技能 ⬇( {1}/7)" }) ;7格
     actions.Push({ sleep: 400, tip: "45. 等待中 (400ms)" })
-    actions.Push({ key: "Enter", press: 250, wait: 1500, tip: "46. 按 ⏎ (1500ms)" })
+    actions.Push({ key: "Enter", press: 80, wait: 1500, tip: "46. 按 ⏎ (1500ms)" })
  
     return actions
 }
@@ -330,9 +330,9 @@ OnSkipClick(*) {
 SkipBtn.OnEvent("Click", OnSkipClick)
  
 ; 💡 進度條位置
-global PreProgressBar := MyGui.Add("Progress", "x45 y3 w30 h12 Backgroundffffff cYellow Range0-10000 +Hidden", 0)
-global ProgressBar := MyGui.Add("Progress", "x45 y3 w" . ProgressBarWidth . " h12 Backgroundffffff cYellow Range0-10000", 0)
-global LoopProgressBar := MyGui.Add("Progress", "x45 y15 w" . ProgressBarWidth . " h12 Backgroundffffff c80C0FF Range0-10000", 0)
+global PreProgressBar := MyGui.Add("Progress", "x-100 y-100 w30 h12 Backgroundffffff cYellow Range0-10000 +Hidden", 0)
+global ProgressBar := MyGui.Add("Progress", "x85 y3 w" . ProgressBarWidth . " h12 Backgroundffffff cYellow Range0-10000", 0)
+global LoopProgressBar := MyGui.Add("Progress", "x85 y15 w" . ProgressBarWidth . " h12 Backgroundffffff c80C0FF Range0-10000", 0)
 
 Loop 30 {
     ctrl := MyGui.Add("Text", "y3 w2 h24 +BackgroundAAAAFF +Hidden", "")
@@ -368,7 +368,7 @@ UpdateUiRunningState(btnName) {
             SkipBtn.Move(-100, -100)
         }
         MyGui.Show("X" GuiX " Y" GuiY " W40 h" GuiH " NoActivate")
-    } else if (btnName == "newSeq" || btnName == "seq" || btnName == "rival") {
+    } else if (btnName == "newSeq" || btnName == "seq" || btnName == "rival" || btnName == "buyCar") {
         if (StopAfterCurrentLoop) {
             SkipBtn.Opt("cRed")
         } else {
@@ -379,6 +379,7 @@ UpdateUiRunningState(btnName) {
         PreProgressBar.Visible := false
         if (btnName == "rival" && RivalLoopLimit == 0) {
             ProgressBar.Visible := false
+            ProgressBar.Move(-100, -100)
             LoopProgressBar.Move(85, 3, 570, 24)
             LoopProgressBar.Visible := true
         } else {
@@ -461,9 +462,9 @@ DrawDividers() {
     }
 
     xPositions := []
-    isDoubleLoopSeq := isNewSequenceRunning || isSequenceRunning
-    startPos := isDoubleLoopSeq ? 85 : 45
-    progressBarWidthVal := isDoubleLoopSeq ? 570 : 610
+    isSeqWithSkipBtn := isNewSequenceRunning || isSequenceRunning || isRivalRunning || isBuyCarRunning
+    startPos := isSeqWithSkipBtn ? 85 : 45
+    progressBarWidthVal := isSeqWithSkipBtn ? 570 : 610
     
     if (globalSegmentEnds.Length > 1) {
         preEndX := startPos + (globalSegmentEnds[1] / globalTotalMs) * progressBarWidthVal
@@ -748,11 +749,14 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
         }
 
         if (limitName == "RivalLoopLimit" && triggerCtrl) {
-            singleLoopSec := getSingleLoopMsFn ? Ceil(getSingleLoopMsFn() / 1000) : (extraSliderCtrls[1].Value + (extraSliderCtrls[2].Value * 4) + extraSliderCtrls[3].Value + 42)
+            singleLoopSec := getSingleLoopMsFn ? Ceil(getSingleLoopMsFn() / 1000) : 300
 
-            if (triggerCtrl.Hwnd == extraSliderCtrls[4].Hwnd || triggerCtrl.Hwnd == extraSliderCtrls[5].Hwnd) {
-                targetHour := extraSliderCtrls[4].Value
-                targetMin := extraSliderCtrls[5].Value
+            idxHour := extraSliderCtrls.Length - 1
+            idxMin := extraSliderCtrls.Length
+
+            if (idxHour >= 1 && idxMin >= 1 && (triggerCtrl.Hwnd == extraSliderCtrls[idxHour].Hwnd || triggerCtrl.Hwnd == extraSliderCtrls[idxMin].Hwnd)) {
+                targetHour := extraSliderCtrls[idxHour].Value
+                targetMin := extraSliderCtrls[idxMin].Value
  
                 currentTotalMin := A_Hour * 60 + A_Min
                 targetTotalMin := targetHour * 60 + targetMin
@@ -772,15 +776,15 @@ ShowConfirmDialog(funcName, timeStr, limitVarRef := unset, recalcFn := "", extra
                 if (hasLimitSlider) {
                     %limitVarRef% := sliderCtrl.Value
                 }
-            } else {
+            } else if (idxHour >= 1 && idxMin >= 1) {
                 totalSec := sliderCtrl.Value * singleLoopSec
                 totalMin := Ceil(totalSec / 60)
                 currentTotalMin := A_Hour * 60 + A_Min
                 endTotalMin := Mod(currentTotalMin + totalMin, 1440)
-                extraSliderCtrls[4].Value := Floor(endTotalMin / 60)
-                extraSliderCtrls[5].Value := Mod(endTotalMin, 60)
-                %(extraParams[4].varRef)% := extraSliderCtrls[4].Value
-                %(extraParams[5].varRef)% := extraSliderCtrls[5].Value
+                extraSliderCtrls[idxHour].Value := Floor(endTotalMin / 60)
+                extraSliderCtrls[idxMin].Value := Mod(endTotalMin, 60)
+                %(extraParams[idxHour].varRef)% := extraSliderCtrls[idxHour].Value
+                %(extraParams[idxMin].varRef)% := extraSliderCtrls[idxMin].Value
             }
         }
 
@@ -1522,48 +1526,48 @@ RunLButtonSequence(bypassConfirm := false) {
 
     buyCarEndActions := [
         ; --- 買車完畢後的收尾步驟 ---
-        { key: "Esc", press: 250, wait: 1200, repeat: 3, tip: "買車完畢: 按 Esc ({1}/3)" },
-        { key: "Right", press: 250, wait: 600, tip: "買車完畢: 按 ⮕" },
-        { key: "Up", press: 250, wait: 600, tip: "買車完畢: 按 ⬆" }
+        { key: "Esc", press: 80, wait: 1200, repeat: 3, tip: "買車完畢: 按 Esc ({1}/3)" },
+        { key: "Right", press: 80, wait: 600, tip: "買車完畢: 按 ⮕" },
+        { key: "Up", press: 80, wait: 600, tip: "買車完畢: 按 ⬆" }
     ]
 
     skillTransitActions := [
         ; --- 技能循環對接步驟 ---
-        { key: "Up", press: 250, wait: 500, repeat: 2, tip: "技能循環對接: 按 ⬆ ({1}/2)" }
+        { key: "Up", press: 80, wait: 500, repeat: 2, tip: "技能循環對接: 按 ⬆ ({1}/2)" }
     ]
 
     skillEndActions := [
         ; --- 技能行程結尾步驟 ---
-        { key: "Esc", press: 250, wait: 1200, tip: "技能結尾: 按 Esc (1/2)" },
-        { key: "Esc", press: 250, wait: 1200, tip: "技能結尾: 按 Esc (2/2)" },
-        { key: "Left", press: 250, wait: 450, tip: "技能結尾: 按 ⬅" }
+        { key: "Esc", press: 80, wait: 1200, tip: "技能結尾: 按 Esc (1/2)" },
+        { key: "Esc", press: 80, wait: 1200, tip: "技能結尾: 按 Esc (2/2)" },
+        { key: "Left", press: 80, wait: 450, tip: "技能結尾: 按 ⬅" }
     ]
 
     finalEndActions := [
         ; --- 技能行程最後一次結束的步驟 ---
-        { key: "Enter", press: 250, wait: 1000, tip: "按 ⏎" },
-        { key: "Down", press: 250, wait: 600, tip: "按 ⬇" },
-        { key: "Enter", press: 250, wait: 1000, tip: "按 ⏎" },
-        { key: "y", press: 250, wait: 1000, tip: "篩選 按 Y" },
-        { key: "Enter", press: 250, wait: 1000, tip: "按 ⏎" },
-        { key: "esc", press: 250, wait: 1000, tip: "按 Esc" },
-        { key: "Enter", press: 250, wait: 1000, tip: "選車 按 ⏎" },
-        { key: "Down", press: 250, wait: 500, tip: "乘駕車輛 按 ⬇" },
-        { key: "Enter", press: 250, wait: 5000, tip: "按 ⏎" },
-        { key: "y", press: 250, wait: 1000, tip: "篩選 按 Y" },
-        { key: "x", press: 250, wait: 1000, tip: "重置 按 X" },
-        { key: "esc", press: 250, wait: 1000, tip: "按 Esc" },
-        { key: "x", press: 250, wait: 450, tip: "排序 按 X" },
+        { key: "Enter", press: 80, wait: 1000, tip: "按 ⏎" },
+        { key: "Down", press: 80, wait: 600, tip: "按 ⬇" },
+        { key: "Enter", press: 80, wait: 1000, tip: "按 ⏎" },
+        { key: "y", press: 80, wait: 1000, tip: "篩選 按 Y" },
+        { key: "Enter", press: 80, wait: 1000, tip: "按 ⏎" },
+        { key: "esc", press: 80, wait: 1000, tip: "按 Esc" },
+        { key: "Enter", press: 80, wait: 1000, tip: "選車 按 ⏎" },
+        { key: "Down", press: 80, wait: 500, tip: "乘駕車輛 按 ⬇" },
+        { key: "Enter", press: 80, wait: 5000, tip: "按 ⏎" },
+        { key: "y", press: 80, wait: 1000, tip: "篩選 按 Y" },
+        { key: "x", press: 80, wait: 1000, tip: "重置 按 X" },
+        { key: "esc", press: 80, wait: 1000, tip: "按 Esc" },
+        { key: "x", press: 80, wait: 450, tip: "排序 按 X" },
         { key: "Down", press: 80, wait: 100, repeat: 12, tip: "最近新增 按 ⬇( {1}/6)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "按 ⏎" },
-        { key: "Backspace", press: 250, wait: 1000, tip: "篩選 按 ⌫" },
-        { key: "Enter", press: 250, wait: 600, tip: "到最新車輛 按 ⏎ " },
-        { key: "Enter", press: 250, wait: 600, tip: "開啟選單按 ⏎" },
+        { key: "Enter", press: 80, wait: 1000, tip: "按 ⏎" },
+        { key: "Backspace", press: 80, wait: 1000, tip: "篩選 按 ⌫" },
+        { key: "Enter", press: 80, wait: 600, tip: "到最新車輛 按 ⏎ " },
+        { key: "Enter", press: 80, wait: 600, tip: "開啟選單按 ⏎" },
         { key: "Down", press: 80, wait: 100, repeat: 10, tip: "從車庫移除 按 ⬇( {1}/5)" },
-        { key: "Enter", press: 250, wait: 600, tip: "按 ⏎" },
-        { key: "Down", press: 250, wait: 600, tip: "確定移除 按 ⬇" },
-        { key: "Enter", press: 250, wait: 600, tip: "按 ⏎" },
-        { key: "Esc", press: 250, wait: 1200, repeat: 3, tip: "全部行程結束: 按 Esc ({1}/3)" }
+        { key: "Enter", press: 80, wait: 600, tip: "按 ⏎" },
+        { key: "Down", press: 80, wait: 600, tip: "確定移除 按 ⬇" },
+        { key: "Enter", press: 80, wait: 600, tip: "按 ⏎" },
+        { key: "Esc", press: 80, wait: 1200, repeat: 3, tip: "全部行程結束: 按 Esc ({1}/3)" }
     ]
 
     navPress := 100
@@ -1573,65 +1577,65 @@ RunLButtonSequence(bypassConfirm := false) {
 
     preActions := [
         ; --- 行程開始前按 ---
-        { key: "esc", press: 250, wait: 1000, tip: "1. 按 Esc" },
-        { key: "PgDn", press: 250, wait: 500, tip: "2. 按 PgDn" },
-        { key: "Left", press: 250, wait: 500, tip: "3. 買賣車輛 按 ⬅" },
-        { key: "Enter", press: 250, wait: 500, tip: "4. 按 ⏎ (1/2)" },
-        { key: "Enter", press: 250, wait: 500, tip: "5. 去嘉年華 按 ⏎ (2/2)" },
+        { key: "esc", press: 80, wait: 1000, tip: "1. 按 Esc" },
+        { key: "PgDn", press: 80, wait: 500, tip: "2. 按 PgDn" },
+        { key: "Left", press: 80, wait: 500, tip: "3. 買賣車輛 按 ⬅" },
+        { key: "Enter", press: 80, wait: 500, tip: "4. 按 ⏎ (1/2)" },
+        { key: "Enter", press: 80, wait: 500, tip: "5. 去嘉年華 按 ⏎ (2/2)" },
         { sleep: 6000, countdown: true, tip: "4. 等待 4 秒" },
-        { key: "Left", press: 250, wait: 500, tip: "7. 按 ⬅" },
-        { key: "Down", press: 250, wait: 500, tip: "8. 收藏日誌 按 ⬇" },
-        { key: "Enter", press: 250, wait: 500, tip: "9. 按 ⏎" },
+        { key: "Left", press: 80, wait: 500, tip: "7. 按 ⬅" },
+        { key: "Down", press: 80, wait: 500, tip: "8. 收藏日誌 按 ⬇" },
+        { key: "Enter", press: 80, wait: 500, tip: "9. 按 ⏎" },
         { sleep: 1000, countdown: true, tip: "等待 1 秒" },
-        { key: "Right", press: 250, wait: 500, tip: "10. 探索大師 按 ⮕" },
-        { key: "Enter", press: 250, wait: 500, tip: "11. 按 ⏎" },
-        { key: "Down", press: 250, wait: 500, tip: "12. 車輛收藏 按 ⬇" },
-        { key: "Enter", press: 250, wait: 500, tip: "13. 按 ⏎" },
+        { key: "Right", press: 80, wait: 500, tip: "10. 探索大師 按 ⮕" },
+        { key: "Enter", press: 80, wait: 500, tip: "11. 按 ⏎" },
+        { key: "Down", press: 80, wait: 500, tip: "12. 車輛收藏 按 ⬇" },
+        { key: "Enter", press: 80, wait: 500, tip: "13. 按 ⏎" },
         { key: "Right", press: 80, wait: 100, tip: "防漂移 按 ⮕" },
-        { key: "Backspace", press: 250, wait: 500, tip: "14. 車廠 按 ⌫" },
+        { key: "Backspace", press: 80, wait: 500, tip: "14. 車廠 按 ⌫" },
         { key: "Left", press: 80, wait: 100, tip: "防漂移按 ⬅" }
     ]
 
     ; 15. 車廠垂直移動
     if (BuyCarMfgUp > 0) {
-        preActions.Push({ key: "Up", press: 250, wait: 500, repeat: BuyCarMfgUp, tip: "15-Up. 選車廠 按 ⬆ (第 {1} 次/共 " . BuyCarMfgUp . " 次)" })
+        preActions.Push({ key: "Up", press: 80, wait: 500, repeat: BuyCarMfgUp, tip: "15-Up. 選車廠 按 ⬆ (第 {1} 次/共 " . BuyCarMfgUp . " 次)" })
     }
     if (BuyCarMfgDown > 0) {
-        preActions.Push({ key: "Down", press: 250, wait: 500, repeat: BuyCarMfgDown, tip: "15-Down. 選車廠 按 ⬇ (第 {1} 次/共 " . BuyCarMfgDown . " 次)" })
+        preActions.Push({ key: "Down", press: 80, wait: 500, repeat: BuyCarMfgDown, tip: "15-Down. 選車廠 按 ⬇ (第 {1} 次/共 " . BuyCarMfgDown . " 次)" })
     }
 
     ; 16. 車廠水平移動
     if (BuyCarMfgLeft > 0) {
-        preActions.Push({ key: "Left", press: 250, wait: 500, repeat: BuyCarMfgLeft, tip: "16-Left. 選車廠 按 ⬅ (第 {1} 次/共 " . BuyCarMfgLeft . " 次)" })
+        preActions.Push({ key: "Left", press: 80, wait: 500, repeat: BuyCarMfgLeft, tip: "16-Left. 選車廠 按 ⬅ (第 {1} 次/共 " . BuyCarMfgLeft . " 次)" })
     }
     if (BuyCarMfgRight > 0) {
-        preActions.Push({ key: "Right", press: 250, wait: 500, repeat: BuyCarMfgRight, tip: "16-Right. 選車廠 按 ⮕ (第 {1} 次/共 " . BuyCarMfgRight . " 次)" })
+        preActions.Push({ key: "Right", press: 80, wait: 500, repeat: BuyCarMfgRight, tip: "16-Right. 選車廠 按 ⮕ (第 {1} 次/共 " . BuyCarMfgRight . " 次)" })
     }
 
     ; 17. 進入車廠
-    preActions.Push({ key: "Enter", press: 250, wait: 500, tip: "17. 選車廠 按 Enter" })
+    preActions.Push({ key: "Enter", press: 80, wait: 500, tip: "17. 選車廠 按 Enter" })
 
     ; 18. 選車垂直與水平移動
     if (BuyCarSelUp > 0) {
-        preActions.Push({ key: "Up", press: 250, wait: 500, repeat: BuyCarSelUp, tip: "18-Up. 選車 按 ⬆ (第 {1} 次/共 " . BuyCarSelUp . " 次)" })
+        preActions.Push({ key: "Up", press: 80, wait: 500, repeat: BuyCarSelUp, tip: "18-Up. 選車 按 ⬆ (第 {1} 次/共 " . BuyCarSelUp . " 次)" })
     }
     if (BuyCarSelDown > 0) {
-        preActions.Push({ key: "Down", press: 250, wait: 500, repeat: BuyCarSelDown, tip: "18-Down. 選車 按 ⬇ (第 {1} 次/共 " . BuyCarSelDown . " 次)" })
+        preActions.Push({ key: "Down", press: 80, wait: 500, repeat: BuyCarSelDown, tip: "18-Down. 選車 按 ⬇ (第 {1} 次/共 " . BuyCarSelDown . " 次)" })
     }
     if (BuyCarSelLeft > 0) {
-        preActions.Push({ key: "Left", press: 250, wait: 500, repeat: BuyCarSelLeft, tip: "18-Left. 選車 按 ⬅ (第 {1} 次/共 " . BuyCarSelLeft . " 次)" })
+        preActions.Push({ key: "Left", press: 80, wait: 500, repeat: BuyCarSelLeft, tip: "18-Left. 選車 按 ⬅ (第 {1} 次/共 " . BuyCarSelLeft . " 次)" })
     }
     if (BuyCarSelRight > 0) {
-        preActions.Push({ key: "Right", press: 250, wait: 500, repeat: BuyCarSelRight, tip: "18-Right. 選車 按 ⮕ (第 {1} 次/共 " . BuyCarSelRight . " 次)" })
+        preActions.Push({ key: "Right", press: 80, wait: 500, repeat: BuyCarSelRight, tip: "18-Right. 選車 按 ⮕ (第 {1} 次/共 " . BuyCarSelRight . " 次)" })
     }
 
     buyCarActions := [
         ; --- 買車行程步驟 ---
-        { key: "Space", press: 250, wait: 500, tip: "買車: 按 Space" },
-        { key: "Down", press: 250, wait: 500, tip: "買車: 按 ⬇" },
-        { key: "Enter", press: 250, wait: 500, tip: "買車: 按 ⏎ (1/3)" },
-        { key: "Enter", press: 250, wait: 500, tip: "買車: 按 ⏎ (2/3)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "買車: 按 ⏎ (3/3)" }
+        { key: "Space", press: 80, wait: 500, tip: "買車: 按 Space" },
+        { key: "Down", press: 80, wait: 500, tip: "買車: 按 ⬇" },
+        { key: "Enter", press: 80, wait: 500, tip: "買車: 按 ⏎ (1/3)" },
+        { key: "Enter", press: 80, wait: 500, tip: "買車: 按 ⏎ (2/3)" },
+        { key: "Enter", press: 80, wait: 1000, tip: "買車: 按 ⏎ (3/3)" }
     ]
 
 
@@ -2240,12 +2244,21 @@ WatchGameWindow() {
             isRunning := (isSequenceRunning || isNewSequenceRunning || isBuyCarRunning || isEnterSpamRunning || isGasOn || isRivalRunning)
             if (isRunning) {
                 ; 行程運行中，強制確認進度條為顯示狀態，防誤隱藏
-                if (!ProgressBar.Visible)
-                    ProgressBar.Visible := true
-                if (!LoopProgressBar.Visible)
-                    LoopProgressBar.Visible := true
-                if (!ProgressText.Visible)
-                    ProgressText.Visible := true
+                if (isRivalRunning && RivalLoopLimit == 0) {
+                    if (ProgressBar.Visible) {
+                        ProgressBar.Visible := false
+                        ProgressBar.Move(-100, -100)
+                    }
+                } else if (isNewSequenceRunning || isSequenceRunning || isBuyCarRunning || (isRivalRunning && RivalLoopLimit > 0)) {
+                    if (!ProgressBar.Visible)
+                        ProgressBar.Visible := true
+                }
+                if (isNewSequenceRunning || isSequenceRunning || isBuyCarRunning || isRivalRunning) {
+                    if (!LoopProgressBar.Visible)
+                        LoopProgressBar.Visible := true
+                    if (!ProgressText.Visible)
+                        ProgressText.Visible := true
+                }
             }
             ; 只要遊戲視窗位置有變動（被拖曳移動），UI 就即時無縫跟隨
             if (GuiX != lastX || GuiY != lastY) {
@@ -2331,23 +2344,23 @@ RunNewSequence(bypassConfirm := false) {
 
     preActions := [
         ; --- 行程開始前按 ---
-        { key: "esc", press: 250, wait: 1000, tip: "1. 按 Esc" },
-        { key: "PgUp", press: 250, wait: 1000, tip: "2. 商店 按 PgUp (1/2)" },
-        { key: "PgUp", press: 250, wait: 1000, tip: "3. 創意中心 按 PgUp (2/2)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "4. 按 ⏎" },
-        { key: "Down", press: 250, wait: 1000, tip: "5. 遊玩挑戰 按 ⬇" },
-        { key: "Enter", press: 250, wait: 1000, tip: "6. 按 ⏎" },
-        { key: "Backspace", press: 250, wait: 500, tip: "7. 搜尋 按 ⌫" },
-        { key: "Up", press: 250, wait: 1000, tip: "8. 分享代碼 按 Up" },
-        { key: "Enter", press: 250, wait: 1000, pauseFocus: true, tip: "9. 按 ⏎" },
+        { key: "esc", press: 80, wait: 1000, tip: "1. 按 Esc" },
+        { key: "PgUp", press: 80, wait: 1000, tip: "2. 商店 按 PgUp (1/2)" },
+        { key: "PgUp", press: 80, wait: 1000, tip: "3. 創意中心 按 PgUp (2/2)" },
+        { key: "Enter", press: 80, wait: 1000, tip: "4. 按 ⏎" },
+        { key: "Down", press: 80, wait: 1000, tip: "5. 遊玩挑戰 按 ⬇" },
+        { key: "Enter", press: 80, wait: 1000, tip: "6. 按 ⏎" },
+        { key: "Backspace", press: 80, wait: 500, tip: "7. 搜尋 按 ⌫" },
+        { key: "Up", press: 80, wait: 1000, tip: "8. 分享代碼 按 Up" },
+        { key: "Enter", press: 80, wait: 1000, pauseFocus: true, tip: "9. 按 ⏎" },
         { waitForBlack: true, timeout: 10000, estimatedWait: 1500, tip: "9.5. 偵測輸入介面黑色背景" },
         { text: labcode, wait: 2000, tip: "10. 貼上分享代碼" },
-        { key: "Enter", press: 250, wait: 1500, tip: "10. 按 ⏎ 提交代碼" },
+        { key: "Enter", press: 80, wait: 1500, tip: "10. 按 ⏎ 提交代碼" },
         { clickCenter: true, wait: 500, tip: "10.5. 點擊頂部空白處脫離輸入框" },
-        { key: "Down", press: 350, wait: 1000, tip: "11. 確認 按 ⬇" },
-        { key: "Enter", press: 250, wait: 1000, tip: "12. 按 ⏎" },
+        { key: "Down", press: 80, wait: 1000, tip: "11. 確認 按 ⬇" },
+        { key: "Enter", press: 80, wait: 1000, tip: "12. 按 ⏎" },
         { waitForYellow: true, estimatedWait: 2000, resumeFocus: true, tip: "12.5. 偵測黃色卡片載入" },
-        { key: "Enter", press: 350, wait: 1000, tip: "13. 按 ⏎" },
+        { key: "Enter", press: 80, wait: 1000, tip: "13. 按 ⏎" },
         { waitForProgressBarEndNotBlack: true, timeout: 45000, estimatedWait: 20000, tip: "14. 偵測進度條右下非黑色(進場完成)" }
     ]
 
@@ -2418,77 +2431,77 @@ RunNewSequence(bypassConfirm := false) {
 
                 ; 宣告並動態取得點技能行程所需的陣列與函數
                 local skillPreActions := [
-                    { key: "esc", press: 250, wait: 1000, tip: "1. 按 Esc" },
-                    { key: "PgDn", press: 250, wait: 500, tip: "2. 按 PgDn" },
-                    { key: "Left", press: 250, wait: 500, tip: "3. 買賣車輛 按 ⬅" },
-                    { key: "Enter", press: 250, wait: 500, tip: "4. 去嘉年華 按 ⏎ (1/2)" },
-                    { key: "Enter", press: 250, wait: 500, tip: "5. 按 ⏎ (2/2)" },
+                    { key: "esc", press: 80, wait: 1000, tip: "1. 按 Esc" },
+                    { key: "PgDn", press: 80, wait: 500, tip: "2. 按 PgDn" },
+                    { key: "Left", press: 80, wait: 500, tip: "3. 買賣車輛 按 ⬅" },
+                    { key: "Enter", press: 80, wait: 500, tip: "4. 去嘉年華 按 ⏎ (1/2)" },
+                    { key: "Enter", press: 80, wait: 500, tip: "5. 按 ⏎ (2/2)" },
                     { sleep: 6000, countdown: true, tip: "4. 等待 4 秒" },
-                    { key: "Left", press: 250, wait: 500, tip: "7. 按 ⬅" },
-                    { key: "Down", press: 250, wait: 500, tip: "8. 收藏日誌 按 ⬇" },
-                    { key: "Enter", press: 250, wait: 500, tip: "9. 按 ⏎" },
+                    { key: "Left", press: 80, wait: 500, tip: "7. 按 ⬅" },
+                    { key: "Down", press: 80, wait: 500, tip: "8. 收藏日誌 按 ⬇" },
+                    { key: "Enter", press: 80, wait: 500, tip: "9. 按 ⏎" },
                     { sleep: 1000, countdown: true, tip: "等待 1 秒" },
-                    { key: "Right", press: 250, wait: 500, tip: "10. 探索大師 按 ⮕" },
-                    { key: "Enter", press: 250, wait: 500, tip: "11. 按 ⏎" },
-                    { key: "Down", press: 250, wait: 500, tip: "12. 車輛收藏 按 ⬇" },
-                    { key: "Enter", press: 250, wait: 500, tip: "13. 按 ⏎" },
+                    { key: "Right", press: 80, wait: 500, tip: "10. 探索大師 按 ⮕" },
+                    { key: "Enter", press: 80, wait: 500, tip: "11. 按 ⏎" },
+                    { key: "Down", press: 80, wait: 500, tip: "12. 車輛收藏 按 ⬇" },
+                    { key: "Enter", press: 80, wait: 500, tip: "13. 按 ⏎" },
                     { key: "Right", press: 80, wait: 100, tip: "防漂移 按 ⮕" },
-                    { key: "Backspace", press: 250, wait: 500, tip: "14. 車廠 按 ⌫" },
+                    { key: "Backspace", press: 80, wait: 500, tip: "14. 車廠 按 ⌫" },
                     { key: "Left", press: 80, wait: 100, tip: "防漂移按 ⬅" }
                 ]
 
                 if (BuyCarMfgUp > 0) {
-                    skillPreActions.Push({ key: "Up", press: 250, wait: 500, repeat: BuyCarMfgUp })
+                    skillPreActions.Push({ key: "Up", press: 80, wait: 500, repeat: BuyCarMfgUp })
                 }
                 if (BuyCarMfgDown > 0) {
-                    skillPreActions.Push({ key: "Down", press: 250, wait: 500, repeat: BuyCarMfgDown })
+                    skillPreActions.Push({ key: "Down", press: 80, wait: 500, repeat: BuyCarMfgDown })
                 }
                 if (BuyCarMfgLeft > 0) {
-                    skillPreActions.Push({ key: "Left", press: 250, wait: 500, repeat: BuyCarMfgLeft })
+                    skillPreActions.Push({ key: "Left", press: 80, wait: 500, repeat: BuyCarMfgLeft })
                 }
                 if (BuyCarMfgRight > 0) {
-                    skillPreActions.Push({ key: "Right", press: 250, wait: 500, repeat: BuyCarMfgRight })
+                    skillPreActions.Push({ key: "Right", press: 80, wait: 500, repeat: BuyCarMfgRight })
                 }
-                skillPreActions.Push({ key: "Enter", press: 250, wait: 500 })
+                skillPreActions.Push({ key: "Enter", press: 80, wait: 500 })
                 if (BuyCarSelUp > 0) {
-                    skillPreActions.Push({ key: "Up", press: 250, wait: 500, repeat: BuyCarSelUp })
+                    skillPreActions.Push({ key: "Up", press: 80, wait: 500, repeat: BuyCarSelUp })
                 }
                 if (BuyCarSelDown > 0) {
-                    skillPreActions.Push({ key: "Down", press: 250, wait: 500, repeat: BuyCarSelDown })
+                    skillPreActions.Push({ key: "Down", press: 80, wait: 500, repeat: BuyCarSelDown })
                 }
                 if (BuyCarSelLeft > 0) {
-                    skillPreActions.Push({ key: "Left", press: 250, wait: 500, repeat: BuyCarSelLeft })
+                    skillPreActions.Push({ key: "Left", press: 80, wait: 500, repeat: BuyCarSelLeft })
                 }
                 if (BuyCarSelRight > 0) {
-                    skillPreActions.Push({ key: "Right", press: 250, wait: 500, repeat: BuyCarSelRight })
+                    skillPreActions.Push({ key: "Right", press: 80, wait: 500, repeat: BuyCarSelRight })
                 }
 
                 local skillBuyCarActions := [
-                    { key: "Space", press: 250, wait: 500 },
-                    { key: "Down", press: 250, wait: 500 },
-                    { key: "Enter", press: 250, wait: 500 },
-                    { key: "Enter", press: 250, wait: 500 },
-                    { key: "Enter", press: 250, wait: 1000 }
+                    { key: "Space", press: 80, wait: 500 },
+                    { key: "Down", press: 80, wait: 500 },
+                    { key: "Enter", press: 80, wait: 500 },
+                    { key: "Enter", press: 80, wait: 500 },
+                    { key: "Enter", press: 80, wait: 1000 }
                 ]
 
                 local skillBuyCarEndActions := [
-                    { key: "Esc", press: 250, wait: 1200, repeat: 3 },
-                    { key: "Right", press: 250, wait: 600 },
-                    { key: "Up", press: 250, wait: 600 }
+                    { key: "Esc", press: 80, wait: 1200, repeat: 3 },
+                    { key: "Right", press: 80, wait: 600 },
+                    { key: "Up", press: 80, wait: 600 }
                 ]
 
                 local skillTransitActions := [
-                    { key: "Up", press: 250, wait: 500, repeat: 2 }
+                    { key: "Up", press: 80, wait: 500, repeat: 2 }
                 ]
 
                 local skillEndActions := [
-                    { key: "Esc", press: 250, wait: 1200 },
-                    { key: "Esc", press: 250, wait: 1200 },
-                    { key: "Left", press: 250, wait: 450 }
+                    { key: "Esc", press: 80, wait: 1200 },
+                    { key: "Esc", press: 80, wait: 1200 },
+                    { key: "Left", press: 80, wait: 450 }
                 ]
 
                 local skillFinalEndActions := [
-                    { key: "Esc", press: 250, wait: 1200, repeat: 3 }
+                    { key: "Esc", press: 80, wait: 1200, repeat: 3 }
                 ]
 
                 local skillPreMs := 0
@@ -2656,6 +2669,7 @@ RunNewSequence(bypassConfirm := false) {
     UpdateUiRunningState("newSeq")
     SetTimer(UpdateNewLoopProgress, 100)
 
+    firstTripMeasured := false
     loopBreak := false
     while (isNewSequenceRunning && !loopBreak) {
         restartFromStep1 := false
@@ -2861,6 +2875,7 @@ RunNewSequence(bypassConfirm := false) {
 
                         ; 2. 等待賽事介面出現
                         hasSeenBlack := false
+                        blackWaitStart := A_TickCount
                         while (isNewSequenceRunning) {
                             if (!isPauseFocusCheck && (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
                                 break
@@ -2872,10 +2887,15 @@ RunNewSequence(bypassConfirm := false) {
                             ShowTip("15-1. 等待賽事介面出現...")
                             Sleep(100)
                         }
+                        blackWaitMs := A_TickCount - blackWaitStart
 
                         ; 3. 介面出現後，正式按住 W 前進
+                        interfaceDisappearMs := 0
                         if (hasSeenBlack && isNewSequenceRunning) {
                             SendInput("{w Down}")
+                            wHoldStart := A_TickCount
+                            lastWSubKeyTime := wHoldStart
+                            nextWSubKey := "Up"
 
                             while (isNewSequenceRunning) {
                                 if (!isPauseFocusCheck && (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
@@ -2888,14 +2908,41 @@ RunNewSequence(bypassConfirm := false) {
                                 ; 當三條黑色底條完全消失時，觸發緩衝並鬆開 W
                                 if (!hasBlackCurrent) {
                                     wSuccess := true
+                                    interfaceDisappearMs := A_TickCount - wHoldStart
                                     ShowTip("15-1. 偵測到介面消失：緩衝等待 1 秒後鬆開 W...")
                                     CountdownSleep(1000, "15-1. 介面消失：緩衝等待 1 秒準備鬆開 W")
                                     break
                                 }
 
+                                if (A_TickCount - lastWSubKeyTime >= 5000) {
+                                    SendWPeriodicKey(&nextWSubKey)
+                                    lastWSubKeyTime := A_TickCount
+                                }
+
                                 ShowTip("15-1. 介面已出現：按住 W 前進")
                                 Sleep(100)
                             }
+                        }
+
+                        ; 第一趟完成時，紀錄「等黑色」與「介面消失」時間相加，更新後續循環預估剩餘時間
+                        if (!firstTripMeasured && wSuccess) {
+                            actualStep15_1_Ms := blackWaitMs + interfaceDisappearMs
+                            estimatedStep15_1_Ms := CalculateActionMs(action)
+                            diffMs := actualStep15_1_Ms - estimatedStep15_1_Ms
+
+                            globalTotalMs += diffMs * NewSequenceLoopLimit
+                            sequenceTotalSec := Max(1, Ceil(globalTotalMs / 1000))
+                            oneLoopMs += diffMs
+                            finalLoopMs += diffMs
+
+                            globalSegmentEnds := [ preMs ]
+                            Loop NewSequenceLoopLimit - 1 {
+                                globalSegmentEnds.Push(globalSegmentEnds[globalSegmentEnds.Length] + oneLoopMs)
+                            }
+                            globalSegmentEnds.Push(globalSegmentEnds[globalSegmentEnds.Length] + finalLoopMs)
+
+                            DrawDividers()
+                            firstTripMeasured := true
                         }
 
                         if (wBoxGui != "") {
@@ -2913,7 +2960,9 @@ RunNewSequence(bypassConfirm := false) {
                         }
                         SendInput("{" action.key " Down}")
 
-                        if (action.HasOwnProp("countdown")) {
+                        if (action.key == "w") {
+                            wSuccess := HoldWWithPeriodicKeys(holdMs, action.tip, &isNewSequenceRunning)
+                        } else if (action.HasOwnProp("countdown")) {
                             wSuccess := CountdownSleep(holdMs, action.tip)
                         } else {
                             ShowTip(action.tip)
@@ -3062,11 +3111,11 @@ RunBuyCarSequence() {
     isBuyCarRunning := true
 
     staticActions := [
-        { key: "Space", press: 250, wait: 500, tip: "1. 買車 按 Space (250ms)" },
-        { key: "Down", press: 250, wait: 500, tip: "2. 確定 按 ⬇ (250ms)" },
-        { key: "Enter", press: 250, wait: 500, tip: "3. 按 ⏎ (1/3)" },
-        { key: "Enter", press: 250, wait: 500, tip: "4. 按 ⏎ (2/3)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "5. 按 ⏎ (3/3)" }
+        { key: "Space", press: 80, wait: 500, tip: "1. 買車 按 Space (250ms)" },
+        { key: "Down", press: 80, wait: 500, tip: "2. 確定 按 ⬇ (250ms)" },
+        { key: "Enter", press: 80, wait: 500, tip: "3. 按 ⏎ (1/3)" },
+        { key: "Enter", press: 80, wait: 500, tip: "4. 按 ⏎ (2/3)" },
+        { key: "Enter", press: 80, wait: 1000, tip: "5. 按 ⏎ (3/3)" }
     ]
 
     CalculateTotalMs(mfgUp := BuyCarMfgUp, mfgDown := BuyCarMfgDown, mfgLeft := BuyCarMfgLeft, mfgRight := BuyCarMfgRight, selUp := BuyCarSelUp, selDown := BuyCarSelDown, selLeft := BuyCarSelLeft, selRight := BuyCarSelRight) {
@@ -3380,11 +3429,20 @@ InfiniteGasLoop() {
             Send("{w Down}")
         }
 
+        lastWSubKeyTime := A_TickCount
+        nextWSubKey := "Up"
+
         while (isGasOn && (A_TickCount - startTime < randomHoldTime)) {
             if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
                 StopGasAndClean()
                 return
             }
+
+            if (A_TickCount - lastWSubKeyTime >= 5000) {
+                SendWPeriodicKey(&nextWSubKey)
+                lastWSubKeyTime := A_TickCount
+            }
+
             Sleep(100)
         }
         if (!isGasOn)
@@ -3482,16 +3540,12 @@ StopGasAndClean() {
     ForceReleaseW_Hardware()
 }
 
-
-
-
-
-
 ShowTip(stepText) {
     global GuiX, GuiY, currentStepText, ProgressText, sequenceStartTime, sequenceTotalSec, MyGui, globalTotalMs
     global isSequenceRunning, loopStartTime, TotalMs, currentLoopItem, LoopCountLimit
     global isNewSequenceRunning, newLoopStartTime, NewSequenceTotalMs, currentNewLoopItem, NewSequenceLoopLimit
     global isBuyCarRunning, buyCarStartTime, BuyCarTotalMs, currentBuyCarLoopItem, BuyCarLoopLimit
+    global isRivalRunning, currentRivalLoopItem, RivalLoopLimit
 
     static lastInfoText := ""
 
@@ -3513,6 +3567,7 @@ ShowTip(stepText) {
     stepText := StrReplace(stepText, "Up", "⬆")
     stepText := StrReplace(stepText, "Left", "⬅")
     stepText := StrReplace(stepText, "Right", "⮕")
+    stepText := StrReplace(stepText, "↵", "⏎")
 
     currentStepText := stepText
 
@@ -3572,37 +3627,33 @@ RunRivalSequence() {
     isRivalRunning := true
 
     staticActions := [
-        { key: "Esc", press: 250, wait: 1000, tip: "1. 按 Esc" },
-        { key: "PgDn", press: 250, wait: 500, tip: "2. 按 PgDn (1/3)" },
-        { key: "PgDn", press: 250, wait: 500, tip: "3. 按 PgDn (2/3)" },
-        { key: "PgDn", press: 250, wait: 500, tip: "4. 按 PgDn (3/3)" },
-        { key: "Down", press: 250, wait: 500, tip: "5. 勁敵 按 ⬇" },
-        { key: "Enter", press: 250, wait: 1000, tip: "6. 勁敵 按 ⏎ (1/3)" },
-        { key: "Enter", press: 250, wait: 2000, tip: "7. 公路競速賽 按 ⏎ (2/3)" },
-        { key: "Enter", press: 250, wait: 1000, tip: "8. 高速公路環道 按 ⏎ (3/3)" },
-        { key: "Enter", press: 250, wait: 1500, tip: "11. 按 ⏎" },
-        { key: "Left", press: 250, wait: 500, tip: "12. 性能R 按 ⬅" },
-        { sleepVar: "RivalLoadSec", countdown: true, tip: "篩選前等待" },
-        { key: "y", press: 250, wait: 500, tip: "13. 按 Y" },
-        { sleepVar: "RivalLoadSec", countdown: true, tip: "14. 等待載入" },
-        { key: "Enter", press: 250, wait: 500, tip: "15. 按 ⏎" },
-        { sleepVar: "RivalLoadSec", countdown: true, tip: "16. 等待載入" },
-        { key: "Enter", press: 250, wait: 500, tip: "17. 按 ⏎" },
-        { key: "y", press: 250, wait: 500, tip: "18. 我的最愛 按 Y" },
-        { key: "Enter", press: 250, wait: 500, tip: "19. 按 ⏎" },
-        { key: "Esc", press: 250, wait: 500, tip: "20. 按 駕駛車 Esc" },
-        { key: "Enter", press: 250, wait: 500, tip: "21. 按 ⏎" },
-        { sleepVar: "RivalTransitionSec", countdown: true, tip: "22. 等待過場" },
-        { key: "Enter", press: 250, wait: 500, tip: "23. 按 ⏎" },
-        { key: "w", dynamicWaitVar: "RivalThrottleSec", wait: 500, countdown: true, tip: "24. 按住 W 設定秒數" },
-        { key: "Esc", press: 250, wait: 500, tip: "25. 按 退出賽事 Esc" },
-        { key: "Right", press: 250, wait: 500, tip: "26. 按 完成勁敵 ⮕" },
-        { key: "Enter", press: 250, wait: 500, tip: "27. 按 ⏎" },
-        { key: "Enter", press: 250, wait: 500, tip: "27. 按 ⏎" },
-        { key: "Enter", press: 250, wait: 500, tip: "27. 按 ⏎" },
-        { sleepVar: "RivalLoadSec", countdown: true, tip: "28. 等待載入" },
-        { key: "Enter", press: 250, wait: 500, tip: "29. 按 ⏎" },
-        { sleepRange: [30, 40], countdown: true, tip: "29. 等待 {1} 秒" }
+        { key: "Esc", press: 80, wait: 500, detectColor: 7, timeout: 10000, retryStep: true, tip: "1. 按 Esc (等待左側桃色選單)" },
+        { key: "PgDn", press: 80, wait: 500, tip: "2. 按 PgDn (1/3)" },
+        { key: "PgDn", press: 80, wait: 500, tip: "3. 按 PgDn (2/3)" },
+        { key: "PgDn", press: 80, wait: 500, tip: "4. 按 PgDn (3/3)" },
+        { key: "Down", press: 80, wait: 500, tip: "5. 勁敵 按 ⬇" },
+        { detectColor: 8, timeout: 3000, retryFromStep1: true, tip: "5.5. 驗證桃色區塊吻合" },
+        { key: "Enter", press: 80, wait: 1000, tip: "6. 勁敵 按 ⏎ (1/3)" },
+        { key: "Enter", press: 80, wait: 2000, tip: "7. 公路競速賽 按 ⏎ (2/3)" },
+        { key: "Enter", press: 80, wait: 1000, tip: "8. 高速公路環道 按 ⏎ (3/3)" },
+        { key: "Enter", press: 80, wait: 1500, tip: "11. 按 ⏎" },
+        { key: "Left", press: 80, wait: 500, tip: "12. 性能R 按 ⬅" },
+        { detectRedR: 1, actionKey: "y", press: 80, wait: 500, tip: "13. 等待詳細資訊紅底R -> 按 Y" },
+        { detectRedR: 2, actionKey: "Enter", press: 80, wait: 500, tip: "14. 等待勁敵列表紅底R -> 按 ⏎" },
+        { detectRedR: 1, actionKey: "Enter", press: 80, wait: 500, tip: "15. 等待詳細資訊紅底R -> 按 ⏎" },
+        { key: "y", press: 80, wait: 500, tip: "16. 我的最愛 按 Y" },
+        { key: "Enter", press: 80, wait: 500, tip: "17. 按 ⏎" },
+        { key: "Esc", press: 80, wait: 500, tip: "18. 按 駕駛車 Esc" },
+        { key: "Enter", press: 80, wait: 500, tip: "19. 按 ⏎" },
+        { detectRedR: 3, actionKey: "Enter", press: 80, wait: 500, preDelay: 1000, tip: "20. 等待左上角紅底R -> 延遲1秒按 ⏎" },
+        { key: "w", dynamicWaitVar: "RivalThrottleSec", wait: 500, countdown: true, tip: "21. 按住 W 設定秒數" },
+        { key: "Esc", press: 80, wait: 1000, tip: "22. 按 退出賽事 Esc" },
+        { key: "Right", press: 80, wait: 500, tip: "23. 按 完成勁敵 ⮕" },
+        { key: "Enter", press: 80, wait: 500, tip: "24. 按 ⏎" },
+        { key: "Enter", press: 80, wait: 500, tip: "25. 按 ⏎" },
+        { key: "Enter", press: 80, wait: 500, tip: "26. 按 ⏎" },
+        { sleep: 10000, countdown: true, tip: "等待 10 秒過場" },
+        { detectColor: 6, press: 80, wait: 500, tip: "27. 等待右下角儀表板桃紅線條出現" }
     ]
 
     CalculateTotalMs() {
@@ -3615,10 +3666,17 @@ RunRivalSequence() {
             } else if (action.HasOwnProp("sleepRange")) {
                 totalMs += ((action.sleepRange[1] + action.sleepRange[2]) / 2) * 1000
             } else if (action.HasOwnProp("dynamicWaitVar")) {
-                totalMs += (%action.dynamicWaitVar% * 1000) + action.wait
+                totalMs += (%action.dynamicWaitVar% * 1000) + (action.HasOwnProp("wait") ? action.wait : 0)
+            } else if (action.HasOwnProp("detectColor") || action.HasOwnProp("detectRedR")) {
+                pressTime := action.HasOwnProp("press") ? action.press : 0
+                waitTime := action.HasOwnProp("wait") ? action.wait : 0
+                preDelay := action.HasOwnProp("preDelay") ? action.preDelay : 0
+                totalMs += pressTime + waitTime + preDelay
             } else {
+                pressTime := action.HasOwnProp("press") ? action.press : 0
+                waitTime := action.HasOwnProp("wait") ? action.wait : 0
                 repeat := action.HasOwnProp("repeat") ? action.repeat : 1
-                totalMs += (action.press + action.wait) * repeat
+                totalMs += (pressTime + waitTime) * repeat
             }
         }
         return totalMs
@@ -3664,17 +3722,16 @@ RunRivalSequence() {
     RivalEndHour := Floor(endTotalMin / 60)
     RivalEndMin := Mod(endTotalMin, 60)
 
-    recalcFn := (limit, throttleSec, loadSec, transitionSec, endHour := 0, endMin := 0) => (
+    recalcFn := (limit, throttleSec, loadSec, endHour := 0, endMin := 0) => (
         dynamicTotalMs := CalculateTotalMs(),
         actualLim := (limit == 0) ? 1 : limit,
         FormatTimeDuration(Ceil((actualLim * dynamicTotalMs) / 1000))
     )
-    timeStr := recalcFn(RivalLoopLimit, RivalThrottleSec, RivalLoadSec, RivalTransitionSec, RivalEndHour, RivalEndMin)
+    timeStr := recalcFn(RivalLoopLimit, RivalThrottleSec, RivalLoadSec, RivalEndHour, RivalEndMin)
  
     extraParams := [
         { varRef: &RivalThrottleSec, name: "油門時間(分:秒)", range: "10-1800" },
         { varRef: &RivalLoadSec, name: "等待載入(秒)", range: "1-30" },
-        { varRef: &RivalTransitionSec, name: "等待過場(秒)", range: "10-120" },
         { varRef: &RivalEndHour, name: "結束時間(時)", range: "0-23" },
         { varRef: &RivalEndMin, name: "結束時間(分)", range: "0-59" }
     ]
@@ -3735,7 +3792,9 @@ RunRivalSequence() {
         }
 
         loopBreak := false
-        for action in staticActions {
+        actIdx := 1
+        while (actIdx <= staticActions.Length && !loopBreak && isRivalRunning) {
+            action := staticActions[actIdx]
             if (action.HasOwnProp("sleep")) {
                 if (action.HasOwnProp("countdown")) {
                     if (!CountdownSleep(action.sleep, action.tip)) {
@@ -3772,12 +3831,116 @@ RunRivalSequence() {
                     loopBreak := true
                     break
                 }
+            } else if (action.HasOwnProp("detectColor") || action.HasOwnProp("detectRedR")) {
+                if (action.HasOwnProp("key")) {
+                    ShowTip(action.tip)
+                    if (!SendKey(action.key, action.press, action.wait, &isRivalRunning)) {
+                        loopBreak := true
+                        break
+                    }
+                }
+
+
+                mode := action.HasOwnProp("detectColor") ? action.detectColor : action.detectRedR
+                startTime := A_TickCount
+                foundColor := false
+                timeoutMs := action.HasOwnProp("timeout") ? action.timeout : 0
+
+                ; 建立並顯示該 mode 的青色細虛線偵測區域外框
+                try {
+                    WinGetPos(&wX, &wY, &wW, &wH, GameTitle)
+                } catch {
+                    wX := 0, wY := 0, wW := A_ScreenWidth, wH := A_ScreenHeight
+                }
+                GetGameViewportClientRect(&vpX, &vpY, &vpW, &vpH)
+                if (mode == 1) {
+                    ; 詳細資訊紅底R
+                    bx1 := wX + Floor(wW * 0.720), by1 := wY + Floor(wH * 0.560), bw := Floor(wW * 0.150), bh := Floor(wH * 0.080)
+                } else if (mode == 2) {
+                    ; 變更勁敵列表紅底R
+                    bx1 := wX + Floor(wW * 0.440), by1 := wY + Floor(wH * 0.310), bw := Floor(wW * 0.070), bh := Floor(wH * 0.480)
+                } else if (mode == 3) {
+                    ; 左上角紅底R
+                    bx1 := wX + Floor(wW * 0.052), by1 := wY + Floor(wH * 0.045), bw := Floor(wW * 0.050), bh := Floor(wH * 0.035)
+                } else if (mode == 4) {
+                    ; 黃色賽事卡片
+                    bx1 := wX + Floor(wW * 0.255), by1 := wY + Floor(wH * 0.215), bw := Floor(wW * 0.235), bh := Floor(wH * 0.600)
+                } else if (mode == 5) {
+                    ; 中央黑色輸入背景區域
+                    bx1 := wX + Floor(wW * 0.350), by1 := wY + Floor(wH * 0.350), bw := Floor(wW * 0.300), bh := Floor(wH * 0.300)
+                } else if (mode == 6) {
+                    ; 右下角儀表板桃紅色線條
+                    bx1 := vpX + Floor(vpW * 0.940), by1 := vpY + Floor(vpH * 0.750), bw := Floor(vpW * 0.045), bh := Floor(vpH * 0.090)
+                } else if (mode == 7) {
+                    ; 畫面左側桃色卡片區域
+                    bx1 := vpX + Floor(vpW * 0.125), by1 := vpY + Floor(vpH * 0.250), bw := Floor(vpW * 0.150), bh := Floor(vpH * 0.485)
+                } else if (mode == 8) {
+                    ; 「線上」分頁「勁敵」桃色卡片區域
+                    bx1 := vpX + Floor(vpW * 0.280), by1 := vpY + Floor(vpH * 0.520), bw := Floor(vpW * 0.160), bh := Floor(vpH * 0.215)
+                }
+                detectBoxGui := CreateDashedBoxGui(bx1, by1, bw, bh, "0x00FFFF", 2, 12, 6)
+
+                consecutiveCount := 0
+                requiredCount := (mode == 6) ? 4 : 2
+                while (isRivalRunning || isNewSequenceRunning) {
+                    if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
+                        break
+                    }
+                    if (timeoutMs > 0 && (A_TickCount - startTime > timeoutMs)) {
+                        break
+                    }
+                    if DetectColorByMode(mode, false) {
+                        consecutiveCount++
+                        if (consecutiveCount >= requiredCount) {
+                            foundColor := true
+                            break
+                        }
+                    } else {
+                        consecutiveCount := 0
+                    }
+                    elapsedSec := Round((A_TickCount - startTime) / 1000, 1)
+                    ShowTip(action.tip " (" elapsedSec "s)")
+                    Sleep(100)
+                }
+
+                try {
+                    detectBoxGui.Destroy()
+                }
+
+                if (!foundColor || (!isRivalRunning && !isNewSequenceRunning)) {
+                    if (action.HasOwnProp("retryStep") && action.retryStep && isRivalRunning) {
+                        ShowTip("1. 10秒未偵測到桃色選單：重新按 Esc 重試...")
+                        continue
+                    }
+                    if (action.HasOwnProp("retryFromStep1") && action.retryFromStep1 && isRivalRunning) {
+                        ShowTip("4.5. 未偵測到桃色區塊：按 Esc 返回並從第 1 步重試...")
+                        SendKey("Esc", 250, 1000, &isRivalRunning)
+                        actIdx := 1
+                        continue
+                    }
+                    loopBreak := true
+                    break
+                }
+                if (action.HasOwnProp("preDelay") && action.preDelay > 0) {
+                    if (!CountdownSleep(action.preDelay, "偵測成功")) {
+                        loopBreak := true
+                        break
+                    }
+                }
+                if (action.HasOwnProp("actionKey")) {
+                    if (!SendKey(action.actionKey, action.press, action.wait, &isRivalRunning)) {
+                        loopBreak := true
+                        break
+                    }
+                }
             } else if (action.HasOwnProp("dynamicWaitVar")) {
                 holdMs := %action.dynamicWaitVar% * 1000
                 SendInput("{" action.key " Down}")
  
                 wSuccess := false
-                if (action.HasOwnProp("countdown")) {
+                if (action.key == "w") {
+                    wSuccess := HoldWWithPeriodicKeys(holdMs, action.tip, &isRivalRunning)
+                } else if (action.HasOwnProp("countdown")) {
                     wSuccess := CountdownSleep(holdMs, action.tip)
                 } else {
                     ShowTip(action.tip)
@@ -3823,6 +3986,7 @@ RunRivalSequence() {
                     }
                 }
             }
+            actIdx++
         }
         if (loopBreak)
             break
@@ -3855,6 +4019,50 @@ ForceReleaseW_Hardware() {
     SendInput("{w Up}")
     DllCall("keybd_event", "int", 0x57, "int", 0, "int", 2, "ptr", 0)
     Sleep(20)
+}
+
+SendWPeriodicKey(&nextWSubKey) {
+    if (nextWSubKey == "Up") {
+        Send("{Up down}")
+        Sleep(80)
+        Send("{Up up}")
+        nextWSubKey := "h"
+    } else {
+        Send("{h down}")
+        Sleep(80)
+        Send("{h up}")
+        nextWSubKey := "Up"
+    }
+    SendInput("{w Down}")
+}
+
+HoldWWithPeriodicKeys(totalMs, prefix, &isRunning) {
+    global GameTitle, MyGui, isPauseFocusCheck
+    startTime := A_TickCount
+    lastWSubKeyTime := startTime
+    nextWSubKey := "Up"
+
+    while (isRunning && (A_TickCount - startTime < totalMs)) {
+        if (!isPauseFocusCheck && (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
+            return false
+        }
+        
+        if (A_TickCount - lastWSubKeyTime >= 5000) {
+            SendWPeriodicKey(&nextWSubKey)
+            lastWSubKeyTime := A_TickCount
+        }
+
+        elapsedMs := A_TickCount - startTime
+        remainingMs := totalMs - elapsedMs
+        remainingSec := Ceil(remainingMs / 1000)
+        if (remainingSec < 0) {
+            remainingSec := 0
+        }
+        timeDisplay := FormatTimeDuration(remainingSec)
+        ShowTip(prefix " (倒數" timeDisplay ")")
+        Sleep(100)
+    }
+    return isRunning
 }
 
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
@@ -4095,6 +4303,11 @@ SendTextAction(strText, waitDuration, &isRunning) {
 }
 
 CreateDashedBoxGui(x1, y1, w, h, color := "0x00FFFF", thickness := 2, dashLen := 12, gapLen := 6) {
+    global ShowDashedBox
+    if (!ShowDashedBox) {
+        return ""
+    }
+
     boxGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +E0x08000000 +Owner")
     boxGui.BackColor := "0x000001"
     WinSetTransColor("0x000001", boxGui.Hwnd)
@@ -4373,6 +4586,132 @@ DetectGreenRatingCard(showBox := false) {
 
     return found
 }
+
+GetGameViewportClientRect(&vpX, &vpY, &vpW, &vpH) {
+    global GameTitle
+    try {
+        WinGetPos(&wX, &wY, &wW, &wH, GameTitle)
+    } catch {
+        wX := 0, wY := 0, wW := A_ScreenWidth, wH := A_ScreenHeight
+    }
+
+    targetRatio := 16.0 / 9.0
+    currentRatio := wW / wH
+
+    if (currentRatio > targetRatio) {
+        ; 視窗太寬 (左右有黑邊，例如 21:9 螢幕或遠端控制視窗)
+        vpW := Floor(wH * targetRatio)
+        vpH := wH
+        vpX := wX + Floor((wW - vpW) / 2)
+        vpY := wY
+    } else if (currentRatio < targetRatio) {
+        ; 視窗太高 (上下有黑邊)
+        vpW := wW
+        vpH := Floor(wW / targetRatio)
+        vpX := wX
+        vpY := wY + Floor((wH - vpH) / 2)
+    } else {
+        ; 無黑邊 (正好 16:9)
+        vpX := wX, vpY := wY, vpW := wW, vpH := wH
+    }
+}
+
+DetectColorByMode(mode := 1, showBox := false) {
+    global GameTitle, MyGui, isPauseFocusCheck
+
+    try {
+        WinGetPos(&wX, &wY, &wW, &wH, GameTitle)
+    } catch {
+        wX := 0, wY := 0, wW := A_ScreenWidth, wH := A_ScreenHeight
+    }
+    GetGameViewportClientRect(&vpX, &vpY, &vpW, &vpH)
+
+    if (mode == 1) {
+        ; 畫面右側「詳細資訊」下方區域
+        x1 := wX + Floor(wW * 0.720), y1 := wY + Floor(wH * 0.560), x2 := wX + Floor(wW * 0.870), y2 := wY + Floor(wH * 0.640)
+    } else if (mode == 2) {
+        ; 畫面中央「變更勁敵」列表區域
+        x1 := wX + Floor(wW * 0.440), y1 := wY + Floor(wH * 0.310), x2 := wX + Floor(wW * 0.510), y2 := wY + Floor(wH * 0.790)
+    } else if (mode == 3) {
+        ; 畫面左上角標題欄「R 標籤色塊」
+        x1 := wX + Floor(wW * 0.052), y1 := wY + Floor(wH * 0.045), x2 := wX + Floor(wW * 0.102), y2 := wY + Floor(wH * 0.080)
+    } else if (mode == 4) {
+        ; 畫面中央黃色賽事卡片區域
+        x1 := wX + Floor(wW * 0.255), y1 := wY + Floor(wH * 0.215), x2 := wX + Floor(wW * 0.490), y2 := wY + Floor(wH * 0.815)
+    } else if (mode == 5) {
+        ; 畫面正中央黑色背景輸入區域
+        x1 := wX + Floor(wW * 0.350), y1 := wY + Floor(wH * 0.350), x2 := wX + Floor(wW * 0.650), y2 := wY + Floor(wH * 0.650)
+    } else if (mode == 6) {
+        ; 畫面右下角儀表板桃紅色線條 (扣除視窗黑邊: 約 94.0% ~ 98.5% 寬度, 75.0% ~ 84.0% 高度)
+        x1 := vpX + Floor(vpW * 0.940), y1 := vpY + Floor(vpH * 0.750), x2 := vpX + Floor(vpW * 0.985), y2 := vpY + Floor(vpH * 0.840)
+    } else if (mode == 7) {
+        ; 畫面左側「收藏日誌」桃色卡片區域 (約 12.5% ~ 27.5% 寬度, 25.0% ~ 73.5% 高度)
+        x1 := vpX + Floor(vpW * 0.125), y1 := vpY + Floor(vpH * 0.250), x2 := vpX + Floor(vpW * 0.275), y2 := vpY + Floor(vpH * 0.735)
+    } else if (mode == 8) {
+        ; 「線上」分頁「勁敵」桃色卡片區域 (約 28.0% ~ 44.0% 寬度, 52.0% ~ 73.5% 高度)
+        x1 := vpX + Floor(vpW * 0.280), y1 := vpY + Floor(vpH * 0.520), x2 := vpX + Floor(vpW * 0.440), y2 := vpY + Floor(vpH * 0.735)
+    }
+
+    w := x2 - x1, h := y2 - y1
+    boxGui := ""
+    if (showBox) {
+        boxGui := CreateDashedBoxGui(x1, y1, w, h, "0x00FFFF", 2, 12, 6)
+    }
+
+    searchX1 := x1 + 2, searchY1 := y1 + 2, searchX2 := x2 - 2, searchY2 := y2 - 2
+
+    found := false
+    CoordMode("Pixel", "Screen")
+
+    if (mode == 1 || mode == 2 || mode == 3) {
+        ; 桃粉紅/紅底 R 標籤底色 (RGB 0xD0006F, 0xDF0078, 0xD80072, 容差 45)
+        found := PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xD0006F, 45)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xDF0078, 45)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xD80072, 45)
+    } else if (mode == 4) {
+        ; 精確黃色賽事卡片 (0xFFD700, 0xFFDF00)
+        found := PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFFD700, 40)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFFDF00, 40)
+    } else if (mode == 5) {
+        ; 黑色背景區域 (0x000000)
+        found := PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0x000000, 55)
+    } else if (mode == 6) {
+        ; 右下角儀表板桃紅線條 (0xD0006F, 0xDF0078, 0xE6007A, 0xFF007F, 0xEE007C, 容差 40)
+        found := PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xD0006F, 40)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xDF0078, 40)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xE6007A, 40)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFF007F, 40)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xEE007C, 40)
+    } else if (mode == 7) {
+        ; 畫面左側桃色/粉紅卡片 (0xFF007F, 0xE6007A, 0xFF1493, 0xEE007C, 0xD0006F)
+        found := PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFF007F, 40)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xE6007A, 40)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFF1493, 40)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xEE007C, 40)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xD0006F, 40)
+    } else if (mode == 8) {
+        ; 「線上」分頁「勁敵」桃色卡片 (0xD0006F, 0xDF0078, 0xE6007A, 0xFF007F, 0xEE007C, 0xFF1493, 容差 45)
+        found := PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xD0006F, 45)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xDF0078, 45)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xE6007A, 45)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFF007F, 45)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xEE007C, 45)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFF1493, 45)
+    }
+
+    if (showBox && boxGui != "") {
+        try {
+            boxGui.Destroy()
+        }
+    }
+
+    return found
+}
+
+DetectRedRInDetails(mode := 1, showBox := true) {
+    return DetectColorByMode(mode, showBox)
+}
+
 
 DetectTopLeftThreeBlackBarsExist(showBox := true) {
     global GameTitle
