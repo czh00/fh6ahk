@@ -6,14 +6,23 @@
 ; =================================================================
 #Requires AutoHotkey v2.0
 #SingleInstance Force
+SendMode("Input")
 SetKeyDelay(-1, -1)
+SetMouseDelay(-1)
+SetWinDelay(-1)
+SetControlDelay(-1)
 
-; === 強制要求系統管理員權限運行，避免FH6阻擋按鍵 ===
+; === 系統管理員權限提升與容錯備援 (若關閉 UAC 或拒絕授權仍能繼續運行) ===
 if !A_IsAdmin {
     try {
-        Run '*RunAs "' A_ScriptFullPath '"'
+        if !A_IsCompiled
+            Run '*RunAs "' A_AhkPath '" "' A_ScriptFullPath '"'
+        else
+            Run '*RunAs "' A_ScriptFullPath '"'
+        ExitApp()
+    } catch {
+        ; 若系統停用 UAC 或權限提升失敗，降級為普通權限繼續執行
     }
-    ExitApp()
 }
 
 ; === 禁用 Win11 邊緣滑動手勢、視窗貼齊與觸發快捷鍵 ===
@@ -39,51 +48,51 @@ DisableWin11EdgeActions()
 ; =================================================================
 ; [全域自動化參數設定區]
 ; =================================================================
-global LoadVehicleDelay := 11   ; 等待車輛載入時間（秒）
-global LongPressDelay := 3.0     ; 手把長按偵測時間（秒）
-global EnableGamepad := 0        ; 【手把控制設定】1 表示預設啟用手把，0 表示預設停用
-global IsSimplifyDividers := true ; 簡化進度條格數（簡化後每十次畫一格避免太密集）
+global LoadVehicleDelay := 11 ; 等待車輛載入時間（秒）
+global LongPressDelay := 3.0 ; 手把長按偵測時間（秒）
+global EnableGamepad := 0 ; 【手把控制設定】1 表示預設啟用手把，0 表示預設停用
+global IsSimplifyDividers := 1 ; 簡化進度條格數（簡化後每十次畫一格避免太密集）
 
 ; [行程循環次數設定]
-global AutoLoopEnabled := false    ; 自動雙循環開關
-global LoopCountLimit := 47       ; 技能行程循環次數
+global AutoLoopEnabled := 0 ; 自動雙循環開關
+global LoopCountLimit := 47 ; 技能行程循環次數
 global SkillPath := "808" ; 設定車型以決定預設路徑，可填入 "808", "22B", "Revuelto"
-global SkillPoints := 987         ; 技能行程技能點數限制
-global SkillBuyCarEnabled := true ; 點技能前先自動購買車輛
-global NewSequenceLoopLimit := 110 ; 賺技能點行程循環次數
-global labcode := "167982162"      ; 賺技能點賽事分享代碼
-global BuyCarLoopLimit := 0      ; 買車行程循環次數
-global RivalLoopLimit := 0       ; 勁敵刷錢行程循環次數
-global RivalThrottleSec := 300    ; 勁敵刷錢按住油門時間（秒）
+global SkillPoints := 987 ; 技能行程技能點數限制
+global SkillBuyCarEnabled := 1 ; 點技能前先自動購買車輛
+global NewSequenceLoopLimit := 99 ; 賺技能點行程循環次數
+global labcode := "167982162" ; 賺技能點賽事分享代碼
+global BuyCarLoopLimit := 0 ; 買車行程循環次數
+global RivalLoopLimit := 0 ; 勁敵刷錢行程循環次數
+global RivalThrottleSec := 300 ; 勁敵刷錢按住油門時間（秒）
 
 ; [路由器與重啟設定]
-global Enable5AMWait := true       ; 啟用路由器重啟等待與自動確認
-global RebootHour := 5             ; 路由器重啟時間（24H整點）
-global RebootWaitMin := 5          ; 路由器重啟網路斷線等待分鐘
+global Enable5AMWait := 1 ; 啟用路由器重啟等待與自動確認
+global RebootHour := 5 ; 路由器重啟時間（24H整點）
+global RebootWaitMin := 5 ; 路由器重啟網路斷線等待分鐘
 
 ; [偵測與顯示調試設定]
-global ShowDashedBox := true        ; 設定是否顯示偵測顏色的虛線框 (true: 顯示, false: 隱藏)
+global ShowDashedBox := 1 ; 設定是否顯示偵測顏色的虛線框 (true: 顯示, false: 隱藏)
 
 ; 【買車行程設定】
-global BuyCarMfgUp := 10            ; 車廠 往上格數 (0-20)
-global BuyCarMfgDown := 0          ; 車廠 往下格數 (0-20)
-global BuyCarMfgLeft := 0          ; 車廠 往左格數 (0-3)
-global BuyCarMfgRight := 1         ; 車廠 往右格數 (0-3)
-global BuyCarSelUp := 0            ; 選車 往上格數 (0-20)
-global BuyCarSelDown := 1          ; 選車 往下格數 (0-20)
-global BuyCarSelLeft := 2          ; 選車 往左格數 (0-4)
-global BuyCarSelRight := 0         ; 選車 往右格數 (0-4)
+global BuyCarMfgUp := 11 ; 車廠 往上格數 (0-20)
+global BuyCarMfgDown := 0 ; 車廠 往下格數 (0-20)
+global BuyCarMfgLeft := 0 ; 車廠 往左格數 (0-3)
+global BuyCarMfgRight := 2 ; 車廠 往右格數 (0-3)
+global BuyCarSelUp := 0 ; 選車 往上格數 (0-20)
+global BuyCarSelDown := 1 ; 選車 往下格數 (0-20)
+global BuyCarSelLeft := 2 ; 選車 往左格數 (0-4)
+global BuyCarSelRight := 0 ; 選車 往右格數 (0-4)
 
 ; [圖示顯示設定]
-global ShowIcon_Esc := true          ; 顯示按 Esc 圖示
-global ShowIcon_NewSeq := true       ; 顯示賺技能點圖示
-global ShowIcon_Seq := true          ; 顯示點技能圖示
-global ShowIcon_Rival := true        ; 顯示勁敵刷錢圖示
-global ShowIcon_BuyCar := true       ; 顯示買車圖示
-global ShowIcon_Gas := false          ; 顯示油門圖示
-global ShowIcon_EnterSpam := true    ; 顯示連點 Enter 圖示
-global ShowIcon_EditBox := true      ; 顯示編輯偵測框圖示
-global ShowIcon_Exit := true         ; 顯示安全門圖示
+global ShowIcon_Esc := 1 ; 顯示按 Esc 圖示
+global ShowIcon_NewSeq := 1 ; 顯示賺技能點圖示
+global ShowIcon_Seq := 1 ; 顯示點技能圖示
+global ShowIcon_Rival := 1 ; 顯示勁敵刷錢圖示
+global ShowIcon_BuyCar := 1 ; 顯示買車圖示
+global ShowIcon_Gas := 0 ; 顯示油門圖示
+global ShowIcon_EnterSpam := 1 ; 顯示連點 Enter 圖示
+global ShowIcon_EditBox := 1 ; 顯示編輯偵測框圖示
+global ShowIcon_Exit := 1 ; 顯示安全門圖示
 
 
 ; =================================================================
@@ -94,10 +103,10 @@ GroupAdd("GameGroup","ahk_exe notepad.exe") ; 測試用
 global GameTitle := "ahk_group GameGroup" ; 將視窗目標指向群組
 
 global DetectBoxDefs := Map(
-    1,  { name: "1. ⚔ 賺技能點：黃色賽事卡片", desc: "畫面中央黃色賽事卡片區域", ref: "Window",   x1: 0.260, y1: 0.252, x2: 0.403, y2: 0.501 },
+    1,  { name: "1. ⚔ 賺技能點：黃色賽事卡片", desc: "畫面中央黃色賽事卡片區域", ref: "Window",   x1: 0.286, y1: 0.412, x2: 0.462, y2: 0.466 },
     2,  { name: "2. ⚔ 賺技能點：黑色背景區域", desc: "畫面正中央黑色背景輸入區域", ref: "Window",   x1: 0.417, y1: 0.290, x2: 0.532, y2: 0.399 },
-    3,  { name: "3. ⚔ 賺技能點：進度條右下非黑", desc: "賽道載入頁面右下角進度條非黑色區域", ref: "Window",   x1: 0.722, y1: 0.008, x2: 0.814, y2: 0.026 },
-    4,  { name: "4. ⚔ 賺技能點：HUD 資訊框", desc: "畫面左上角「剩餘時間 / 目標 / 目前」HUD 資訊框區域", ref: "Window",   x1: 0.025, y1: 0.051, x2: 0.126, y2: 0.102 },
+    3,  { name: "3. ⚔ 賺技能點：進度條右下非黑", desc: "賽道載入頁面右下角進度條非黑色區域", ref: "Window",   x1: 0.695, y1: 0.000, x2: 0.814, y2: 0.021 },
+    4,  { name: "4. ⚔ 賺技能點：HUD 資訊框", desc: "畫面左上角「剩餘時間 / 目標 / 目前」HUD 資訊框區域", ref: "Window",   x1: 0.033, y1: 0.045, x2: 0.193, y2: 0.143 },
     5,  { name: "5. ⚔ 賺技能點：綠色評分標頭", desc: "畫面中央「是否要為挑戰評分？」亮綠色標頭區域", ref: "Window",   x1: 0.328, y1: 0.345, x2: 0.548, y2: 0.383 },
     6,  { name: "6. ⚔ 賺技能點：儀表板桃紅線條", desc: "畫面右下角儀表板桃紅色線條", ref: "Viewport",   x1: 0.936, y1: 0.766, x2: 0.977, y2: 0.869 },
     7,  { name: "7. 🎖 勁敵刷錢：收藏日誌桃卡", desc: "畫面左側「收藏日誌」桃色卡片區域", ref: "Viewport",   x1: 0.129, y1: 0.347, x2: 0.223, y2: 0.596 },
@@ -106,13 +115,19 @@ global DetectBoxDefs := Map(
     10,  { name: "10. 🎖 勁敵刷錢：詳細資訊區域", desc: "畫面右側「詳細資訊」下方區域", ref: "Window",   x1: 0.754, y1: 0.553, x2: 0.798, y2: 0.586 },
     11,  { name: "11. 🎖 勁敵刷錢：左上角 R 標籤", desc: "畫面左上角標題欄「R 標籤色塊」", ref: "Window",   x1: 0.016, y1: 0.035, x2: 0.051, y2: 0.053 },
     12,  { name: "12. 🎖 勁敵刷錢：篩選綠色標頭", desc: "篩選視窗頂部螢光綠 / 亮綠色區域", ref: "Viewport",   x1: 0.169, y1: 0.208, x2: 0.533, y2: 0.229 },
-    13,  { name: "13. 🎖 勁敵刷錢：高速公路等級桃卡", desc: "高速公路環道下方桃紅色等級卡片區域", ref: "Viewport",   x1: 0.205, y1: 0.722, x2: 0.281, y2: 0.794 }
+    13,  { name: "13. 🎖 勁敵刷錢：高速公路等級桃卡", desc: "高速公路環道下方桃紅色等級卡片區域", ref: "Viewport",   x1: 0.205, y1: 0.722, x2: 0.281, y2: 0.794 },
+    14,  { name: "14. ⚡ 點技能：第 1 格/起點 (行 4, 列 1)", desc: "點技能第 1 格/起點 (行 4, 列 1) 偵測與點擊區域", ref: "Viewport",   x1: 0.181, y1: 0.507, x2: 0.211, y2: 0.569 },
+    15,  { name: "15. ⚡ 點技能：第 2 格 (行 4, 列 2)", desc: "點技能第 2 格 (行 4, 列 2) 偵測與點擊區域", ref: "Viewport",   x1: 0.237, y1: 0.511, x2: 0.275, y2: 0.573 },
+    16,  { name: "16. ⚡ 點技能：第 3 格 (行 4, 列 3)", desc: "點技能第 3 格 (行 4, 列 3) 偵測與點擊區域", ref: "Viewport",   x1: 0.299, y1: 0.517, x2: 0.333, y2: 0.572 },
+    17,  { name: "17. ⚡ 點技能：第 4 格 (行 3, 列 3)", desc: "點技能第 4 格 (行 3, 列 3) 偵測與點擊區域", ref: "Viewport",   x1: 0.298, y1: 0.402, x2: 0.334, y2: 0.466 },
+    18,  { name: "18. ⚡ 點技能：第 5 格 (行 2, 列 3)", desc: "點技能第 5 格 (行 2, 列 3) 偵測與點擊區域", ref: "Viewport",   x1: 0.299, y1: 0.301, x2: 0.331, y2: 0.357 },
+    19,  { name: "19. ⚡ 點技能：第 6 格 (行 1, 列 3)", desc: "點技能第 6 格 (行 1, 列 3) 偵測與點擊區域", ref: "Viewport",   x1: 0.304, y1: 0.203, x2: 0.330, y2: 0.244 }
 )
 global DefaultDetectBoxDefs := Map(
-    1,  { x1: 0.260, y1: 0.252, x2: 0.403, y2: 0.501 },
+    1,  { x1: 0.286, y1: 0.412, x2: 0.462, y2: 0.466 },
     2,  { x1: 0.417, y1: 0.290, x2: 0.532, y2: 0.399 },
-    3,  { x1: 0.722, y1: 0.008, x2: 0.814, y2: 0.026 },
-    4,  { x1: 0.025, y1: 0.051, x2: 0.126, y2: 0.102 },
+    3,  { x1: 0.695, y1: 0.000, x2: 0.814, y2: 0.021 },
+    4,  { x1: 0.033, y1: 0.045, x2: 0.193, y2: 0.143 },
     5,  { x1: 0.328, y1: 0.345, x2: 0.548, y2: 0.383 },
     6,  { x1: 0.936, y1: 0.766, x2: 0.977, y2: 0.869 },
     7,  { x1: 0.129, y1: 0.347, x2: 0.223, y2: 0.596 },
@@ -121,15 +136,26 @@ global DefaultDetectBoxDefs := Map(
     10,  { x1: 0.754, y1: 0.553, x2: 0.798, y2: 0.586 },
     11,  { x1: 0.016, y1: 0.035, x2: 0.051, y2: 0.053 },
     12,  { x1: 0.169, y1: 0.208, x2: 0.533, y2: 0.229 },
-    13,  { x1: 0.205, y1: 0.722, x2: 0.281, y2: 0.794 }
+    13,  { x1: 0.205, y1: 0.722, x2: 0.281, y2: 0.794 },
+    14,  { x1: 0.181, y1: 0.507, x2: 0.211, y2: 0.569 },
+    15,  { x1: 0.237, y1: 0.511, x2: 0.275, y2: 0.573 },
+    16,  { x1: 0.299, y1: 0.517, x2: 0.333, y2: 0.572 },
+    17,  { x1: 0.298, y1: 0.402, x2: 0.334, y2: 0.466 },
+    18,  { x1: 0.299, y1: 0.301, x2: 0.331, y2: 0.357 },
+    19,  { x1: 0.304, y1: 0.203, x2: 0.330, y2: 0.244 }
 )
 
 global isEditBoxMode := false
 global EditBoxMenuGui := ""
 global EditBoxWindowGui := ""
+global EditBoxBodyCtrl := ""
 global EditBoxHeaderCtrl := ""
 global EditBoxInfoCtrl := ""
 global EditBoxStatusCtrl := ""
+global EditBoxResizeWCtrl := ""
+global EditBoxResizeHCtrl := ""
+global EditBoxResizeCornerCtrl := ""
+global curEditBoxW := 0, curEditBoxH := 0
 global lastEditBoxPos := { x: -9999, y: -9999, w: -9999, h: -9999 }
 global currentSelectedEditMode := 1
 global TipGui := ""
@@ -138,6 +164,96 @@ global isDraggingEditBox := false
 global dragMouseStartX := 0, dragMouseStartY := 0
 global dragWinStartX := 0, dragWinStartY := 0
 global dragWinW := 0, dragWinH := 0
+
+; === 車型路徑資料源與全域參數 ===
+global VehiclePaths := Map(
+    "808", [
+        {r: 4, c: 1},
+        {r: 4, c: 2},
+        {r: 4, c: 3},
+        {r: 3, c: 3},
+        {r: 2, c: 3},
+        {r: 1, c: 3}
+    ],
+    "22B", [
+        {r: 4, c: 1},
+        {r: 4, c: 2},
+        {r: 3, c: 2},
+        {r: 2, c: 2},
+        {r: 1, c: 2},
+        {r: 1, c: 1}
+    ],
+    "Revuelto", [
+        {r: 4, c: 1},
+        {r: 3, c: 1},
+        {r: 2, c: 1},
+        {r: 1, c: 1},
+        {r: 1, c: 2},
+        {r: 1, c: 3}
+    ]
+)
+
+ClonePath(path) {
+    cloned := []
+    for pt in path {
+        cloned.Push({r: pt.r, c: pt.c})
+    }
+    return cloned
+}
+
+global globalSkillPath := ClonePath(VehiclePaths.Has(SkillPath) ? VehiclePaths[SkillPath] : VehiclePaths["808"])
+global globalSkillCost := 0 ; 將於下方 CalculatePathCost 定義後正式初始化
+
+GetTotalDetectBoxCount() {
+    global globalSkillPath
+    pathCount := 0
+    try {
+        if (IsSet(globalSkillPath) && (globalSkillPath is Array) && globalSkillPath.Length > 0) {
+            pathCount := globalSkillPath.Length
+        }
+    }
+    return 13 + pathCount
+}
+
+EnsureSkillNodeDetectBoxDefs() {
+    global DetectBoxDefs, DefaultDetectBoxDefs, globalSkillPath
+    if (!IsSet(globalSkillPath) || !(globalSkillPath is Array) || globalSkillPath.Length == 0) {
+        return
+    }
+
+    pathCount := globalSkillPath.Length
+    Loop pathCount {
+        idx := A_Index
+        mode := 13 + idx
+        node := globalSkillPath[idx]
+
+        defX1 := Round(0.420 + (node.c - 1) * 0.080, 3)
+        defX2 := Round(0.480 + (node.c - 1) * 0.080, 3)
+        defY1 := Round(0.650 - (4 - node.r) * 0.130, 3)
+        defY2 := Round(0.740 - (4 - node.r) * 0.130, 3)
+
+        nameStr := (idx == 1) ? Format("{}. ⚡ 點技能：第 1 格/起點 (行 {}, 列 {})", mode, node.r, node.c)
+                             : Format("{}. ⚡ 點技能：第 {} 格 (行 {}, 列 {})", mode, idx, node.r, node.c)
+        descStr := (idx == 1) ? Format("點技能第 1 格/起點 (行 {}, 列 {}) 偵測與點擊區域", node.r, node.c)
+                             : Format("點技能第 {} 格 (行 {}, 列 {}) 偵測與點擊區域", idx, node.r, node.c)
+
+        if (!DetectBoxDefs.Has(mode)) {
+            DetectBoxDefs[mode] := {
+                name: nameStr,
+                desc: descStr,
+                ref: "Viewport",
+                x1: defX1, y1: defY1, x2: defX2, y2: defY2
+            }
+        } else {
+            DetectBoxDefs[mode].name := nameStr
+            DetectBoxDefs[mode].desc := descStr
+        }
+
+        if (!DefaultDetectBoxDefs.Has(mode)) {
+            DefaultDetectBoxDefs[mode] := { x1: defX1, y1: defY1, x2: defX2, y2: defY2 }
+        }
+    }
+}
 
 LoadAllFromIni()
 global ConfirmState := { result: false, isWaiting: false }
@@ -190,34 +306,6 @@ global CurrentConfirmUpdateFn := ""
 global xTriggeredThisPress := false
 global yTriggeredThisPress := false
 global lTriggeredThisPress := false
-; === 車型路徑資料源與全域參數 ===
-global VehiclePaths := Map(
-    "808", [
-        {r: 4, c: 1},
-        {r: 4, c: 2},
-        {r: 4, c: 3},
-        {r: 3, c: 3},
-        {r: 2, c: 3},
-        {r: 1, c: 3}
-    ],
-    "22B", [
-        {r: 4, c: 1},
-        {r: 4, c: 2},
-        {r: 3, c: 2},
-        {r: 2, c: 2},
-        {r: 1, c: 2},
-        {r: 1, c: 1}
-    ],
-    "Revuelto", [
-        {r: 4, c: 1},
-        {r: 3, c: 1},
-        {r: 2, c: 1},
-        {r: 1, c: 1},
-        {r: 1, c: 2},
-        {r: 1, c: 3}
-    ]
-)
-
 GetSkillStaticActions(loopIdx) {
     local actions := [
         { key: "Down", press: 80, wait: 450, tip: "20. 拍賣場 按 ⬇" },
@@ -266,17 +354,6 @@ GetSkillStaticActions(loopIdx) {
     return actions
 }
 
-ClonePath(path) {
-    cloned := []
-    for pt in path {
-        cloned.Push({r: pt.r, c: pt.c})
-    }
-    return cloned
-}
-
-global globalSkillPath := ClonePath(VehiclePaths.Has(SkillPath) ? VehiclePaths[SkillPath] : VehiclePaths["808"])
-global globalSkillCost := 0 ; 將於下方 CalculatePathCost 定義後正式初始化
-
 global ActiveConfirmDialog := {
     sliderCtrl: "",
     extraSliderCtrls: [],
@@ -302,15 +379,28 @@ OnMessage(0x0114, OnHScroll)
 global MyGui := Gui("+AlwaysOnTop -Caption -Border +ToolWindow +Owner")
 MyGui.BackColor := "010101"
 
+TriggerAction(isRunning, stopFn, startFn) {
+    global GameTitle
+    if (isRunning) {
+        stopFn()
+    } else {
+        if WinExist(GameTitle) {
+            try WinActivate(GameTitle)
+            Sleep(80)
+        }
+        startFn()
+    }
+}
+
 global GuiBtns := []
 global btnConfigs := [
-    { name: "esc",       symbol: "Esc", showVar: "ShowIcon_Esc",       fn: (*) => (WinActive(GameTitle) ? Send("{Esc}") : "") },
-    { name: "newSeq",    symbol: "⚔", showVar: "ShowIcon_NewSeq",    fn: (*) => (isNewSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleNewSequence() : "")) },
-    { name: "seq",       symbol: "⚡", showVar: "ShowIcon_Seq",       fn: (*) => (isSequenceRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleLButtonSequence() : "")) },
-    { name: "buyCar",    symbol: "🚗", showVar: "ShowIcon_BuyCar",    fn: (*) => (isBuyCarRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleBuyCarSequence() : "")) },
-    { name: "rival",     symbol: "🎖", showVar: "ShowIcon_Rival",     fn: (*) => (isRivalRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleRivalSequence() : "")) },
-    { name: "gas",       symbol: "🏆", showVar: "ShowIcon_Gas",       fn: (*) => (isGasOn ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleGas() : "")) },
-    { name: "enterSpam", symbol: "🎰", showVar: "ShowIcon_EnterSpam", fn: (*) => (isEnterSpamRunning ? StopGasAndClean() : (WinActive(GameTitle) ? ToggleEnterSpam() : "")) },
+    { name: "esc",       symbol: "Esc", showVar: "ShowIcon_Esc",       fn: (*) => (WinExist(GameTitle) ? (WinActivate(GameTitle), Sleep(50), Send("{Esc}")) : Send("{Esc}")) },
+    { name: "newSeq",    symbol: "⚔", showVar: "ShowIcon_NewSeq",    fn: (*) => TriggerAction(isNewSequenceRunning, StopGasAndClean, ToggleNewSequence) },
+    { name: "seq",       symbol: "⚡", showVar: "ShowIcon_Seq",       fn: (*) => TriggerAction(isSequenceRunning, StopGasAndClean, ToggleLButtonSequence) },
+    { name: "buyCar",    symbol: "🚗", showVar: "ShowIcon_BuyCar",    fn: (*) => TriggerAction(isBuyCarRunning, StopGasAndClean, ToggleBuyCarSequence) },
+    { name: "rival",     symbol: "🎖", showVar: "ShowIcon_Rival",     fn: (*) => TriggerAction(isRivalRunning, StopGasAndClean, ToggleRivalSequence) },
+    { name: "gas",       symbol: "🏆", showVar: "ShowIcon_Gas",       fn: (*) => TriggerAction(isGasOn, StopGasAndClean, ToggleGas) },
+    { name: "enterSpam", symbol: "🎰", showVar: "ShowIcon_EnterSpam", fn: (*) => TriggerAction(isEnterSpamRunning, StopGasAndClean, ToggleEnterSpam) },
     { name: "editBox",   symbol: "⿴", showVar: "ShowIcon_EditBox",   fn: (*) => ToggleEditBoxMode() },
     { name: "exit",      symbol: "⏏", showVar: "ShowIcon_Exit",      fn: (*) => (StopGasAndClean(), MyGui.Destroy(), ExitApp()) }
 ]
@@ -503,7 +593,7 @@ RenderProgressBarBitmap(loopPercent, totalPercent, text, w := 570, h := 28) {
         DllCall("gdi32\DeleteObject", "Ptr", hCurrentProgressBmp)
     }
     hCurrentProgressBmp := hbm
-    ProgressPic.Value := "HBITMAP:" . hbm
+    ProgressPic.Value := "HBITMAP:*" . hbm
 }
 
 ; 💡 全新單點陣圖進度條 (零白框、零閃爍、文字極致貼合)
@@ -600,22 +690,29 @@ WM_WINDOWPOSCHANGING(wParam, lParam, msg, hwnd) {
     global EditBoxWindowGui
     if (EditBoxWindowGui != "" && hwnd == EditBoxWindowGui.Hwnd) {
         flags := NumGet(lParam, 32, "UInt")
-        if !(flags & 0x0002) {
+        if !(flags & 0x0002) { ; 0x0002: SWP_NOMOVE
             curX := NumGet(lParam, 16, "Int")
             curY := NumGet(lParam, 20, "Int")
             curW := NumGet(lParam, 24, "Int")
             curH := NumGet(lParam, 28, "Int")
 
-            minX := 5
-            minY := 10
-            maxX := A_ScreenWidth - curW - 5
-            maxY := A_ScreenHeight - curH - 5
+            ; 寬鬆安全範圍，避免拖移拉伸時鉗制視窗位置導致與 Windows 縮放循環衝突跳動
+            minX := -curW + 50
+            minY := 0
+            maxX := A_ScreenWidth - 50
+            maxY := A_ScreenHeight - 50
 
             clampedX := Max(minX, Min(maxX, curX))
             clampedY := Max(minY, Min(maxY, curY))
 
             NumPut("Int", clampedX, lParam, 16)
             NumPut("Int", clampedY, lParam, 20)
+        }
+        if !(flags & 0x0001) { ; 0x0001: SWP_NOSIZE
+            curW := Max(30, NumGet(lParam, 24, "Int"))
+            curH := Max(30, NumGet(lParam, 28, "Int"))
+            NumPut("Int", curW, lParam, 24)
+            NumPut("Int", curH, lParam, 28)
         }
     }
 }
@@ -1701,7 +1798,7 @@ RunLButtonSequence(bypassConfirm := false) {
         { key: "Enter", press: 80, wait: 500, tip: "9. 按 ⏎" },
         { sleep: 1000, countdown: true, tip: "等待 1 秒" },
         { key: "Right", press: 80, wait: 500, tip: "10. 探索大師 按 ⮕" },
-        { key: "Enter", press: 80, wait: 500, tip: "11. 按 ⏎" },
+        { key: "Enter", press: 80, wait: 1000, tip: "11. 按 ⏎" },
         { key: "Down", press: 80, wait: 500, tip: "12. 車輛收藏 按 ⬇" },
         { key: "Enter", press: 80, wait: 500, tip: "13. 按 ⏎" },
         { key: "Right", press: 80, wait: 100, tip: "防漂移 按 ⮕" },
@@ -1744,10 +1841,10 @@ RunLButtonSequence(bypassConfirm := false) {
 
     buyCarActions := [
         ; --- 買車行程步驟 ---
-        { key: "Space", press: 80, wait: 500, tip: "買車: 按 Space" },
-        { key: "Down", press: 80, wait: 500, tip: "買車: 按 ⬇" },
-        { key: "Enter", press: 80, wait: 500, tip: "買車: 按 ⏎ (1/3)" },
-        { key: "Enter", press: 80, wait: 500, tip: "買車: 按 ⏎ (2/3)" },
+        { key: "Space", press: 80, wait: 1000, tip: "買車: 按 Space" },
+        { key: "Down", press: 80, wait: 1000, tip: "買車: 按 ⬇" },
+        { key: "Enter", press: 80, wait: 1000, tip: "買車: 按 ⏎ (1/3)" },
+        { key: "Enter", press: 80, wait: 1000, tip: "買車: 按 ⏎ (2/3)" },
         { key: "Enter", press: 80, wait: 1000, tip: "買車: 按 ⏎ (3/3)" }
     ]
 
@@ -2217,49 +2314,91 @@ RunLButtonSequence(bypassConfirm := false) {
                 break
             }
 
-            ; 執行路徑導航前先按三次左確認游標對接
-            ShowTip("技能導航前置: 按 ⬅ (1/3)")
-            if (!SendKey("Left", navPress, 100, &isSequenceRunning)) {
-                loopBreak := true
-                break
-            }
-            ShowTip("技能導航前置: 按 ⬅ (2/3)")
-            if (!SendKey("Left", navPress, 100, &isSequenceRunning)) {
-                loopBreak := true
-                break
-            }
-            ShowTip("技能導航前置: 按 ⬅ (3/3)")
-            if (!SendKey("Left", navPress, 100, &isSequenceRunning)) {
-                loopBreak := true
-                break
-            }
+            ; === 點技能動態滑鼠點擊與桃紅偵測流程 (全數技能格皆採用滑鼠點擊) ===
+            EnsureSkillNodeDetectBoxDefs()
+            totalNodes := (IsSet(globalSkillPath) && (globalSkillPath is Array)) ? globalSkillPath.Length : 0
+            if (totalNodes > 0) {
+                Loop totalNodes {
+                    if (!isSequenceRunning)
+                        break
 
-            ; 點選起點的技能
-            ShowTip("技能導航前置: 按 Enter (點選起點)")
-            if (!SendKey("Enter", enterPress, enterWait, &isSequenceRunning)) {
-                loopBreak := true
-                break
-            }
+                    idx := A_Index
+                    boxMode := 13 + idx
+                    targetPt := globalSkillPath[idx]
 
-            ; 執行路徑導航
-            navKeys := GenerateKeySequence()
-            pathBreak := false
-            for key in navKeys {
-                ShowTip("技能導航: 按 " key)
-                if (!SendKey(key, navPress, navWait, &isSequenceRunning)) {
-                    pathBreak := true
+                    stepLabel := (idx == 1) ? "第 1 格/起點" : Format("第 {} 格", idx)
+                    ShowTip(Format("點技能 [{} / {}]: 檢測與點擊 {} (行 {}, 列 {})", idx, totalNodes, stepLabel, targetPt.r, targetPt.c))
+
+                    isUnlocked := false
+                    retryCount := 0
+                    maxRetries := 5
+
+                    while (isSequenceRunning && !isUnlocked && retryCount < maxRetries) {
+                        retryCount++
+
+                        ; 1. 先檢測該格是否已經是紫色/已解鎖
+                        if (DetectColorByMode(boxMode, false)) {
+                            isUnlocked := true
+                            break
+                        }
+
+                        ; 2. 對焦遊戲視窗並移動滑鼠點擊
+                        try {
+                            if WinExist(GameTitle) {
+                                WinActivate(GameTitle)
+                                Sleep(50)
+                            }
+                        }
+                        GetDetectBoxCoords(boxMode, &bx1, &by1, &bx2, &by2)
+                        cx := Floor((bx1 + bx2) / 2)
+                        cy := Floor((by1 + by2) / 2)
+
+                        CoordMode("Mouse", "Screen")
+                        MouseMove(cx, cy)
+                        Sleep(60)
+                        Click("Down")
+                        Sleep(100)
+                        Click("Up")
+                        Sleep(80)
+
+                        ; 同時發送 Enter 作為解鎖確認 (防呆：確保點擊與購買雙重生效)
+                        Send("{Enter}")
+
+                        ; 3. 動態輪詢等待最多 1.5 秒 (每 150ms 檢查一次)，等待遊戲解鎖動畫變為紫色
+                        pollStart := A_TickCount
+                        while (isSequenceRunning && (A_TickCount - pollStart < 1500)) {
+                            if (DetectColorByMode(boxMode, false)) {
+                                isUnlocked := true
+                                break
+                            }
+                            Sleep(150)
+                        }
+
+                        if (isUnlocked)
+                            break
+
+                        ; 若本輪 1.5 秒後仍未檢測到紫色，顯示提示並進行重新點擊重試
+                        ShowTip(Format("點技能 [{} / {}]: {} 未校驗到紫色，重新點擊重試中 ({}/{})...", idx, totalNodes, stepLabel, retryCount, maxRetries))
+                        Sleep(250)
+                    }
+
+                    if (!isSequenceRunning)
+                        break
+
+                    ; 4. 若多次重試仍未校驗到紫色，顯示明確提示
+                    if (!isUnlocked) {
+                        ShowTip(Format("⚠️ 點技能 [{} / {}]: {} 重試 {} 次仍未能確認紫色！", idx, totalNodes, stepLabel, maxRetries))
+                        Sleep(400)
+                    } else {
+                        ShowTip(Format("點技能 [{} / {}]: {} 完成 (已校驗為紫色)", idx, totalNodes, stepLabel))
+                        Sleep(200)
+                    }
+                }
+
+                if (!isSequenceRunning) {
+                    loopBreak := true
                     break
                 }
- 
-                ShowTip("技能導航: 按 Enter")
-                if (!SendKey("Enter", enterPress, enterWait, &isSequenceRunning)) {
-                    pathBreak := true
-                    break
-                }
-            }
-            if (pathBreak) {
-                loopBreak := true
-                break
             }
 
             ; 結尾兩次 Esc 退出與 Left 移動
@@ -2473,7 +2612,7 @@ RunNewSequence(bypassConfirm := false) {
         { key: "Down", press: 80, wait: 1000, tip: "11. 確認 按 ⬇" },
         { key: "Enter", press: 80, wait: 1000, tip: "12. 按 ⏎" },
         { waitForYellow: true, estimatedWait: 2000, resumeFocus: true, tip: "12.5. 偵測黃色卡片載入" },
-        { key: "Enter", press: 80, wait: 1000, tip: "13. 按 ⏎" },
+        { key: "Enter", press: 80, wait: 2000, tip: "13. 按 ⏎" },
         { waitForProgressBarEndNotBlack: true, timeout: 45000, estimatedWait: 20000, tip: "14. 進場完成" }
     ]
 
@@ -2808,8 +2947,14 @@ RunNewSequence(bypassConfirm := false) {
                 break
             }
             if (!isPauseFocusCheck && (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
-                loopBreak := true
-                break
+                if (WinExist(GameTitle)) {
+                    try WinActivate(GameTitle)
+                    Sleep(60)
+                }
+                if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
+                    loopBreak := true
+                    break
+                }
             }
             
             if (action.HasOwnProp("sleep")) {
@@ -2988,12 +3133,15 @@ RunNewSequence(bypassConfirm := false) {
                 } else if (action.HasOwnProp("dynamicWaitVar") || (action.HasOwnProp("key") && action.key == "w")) {
                     wSuccess := false
                     if (action.key == "w") {
-                        ; 繪製左上角「剩餘時間/目標/目前」三條黑色標頭持久青色虛線偵測外框
+                        ; 繪製左上角「剩餘時間/目標/目前」三條黑色標頭持久青色虛線偵測外框 (對應 HUD 資訊框 Mode 4 設定)
                         try {
-                            WinGetPos(&wX, &wY, &wW, &wH, GameTitle)
-                            bx1 := wX + Floor(wW * 0.012), by1 := wY + Floor(wH * 0.025)
-                            bw := Floor(wW * 0.143), bh := Floor(wH * 0.135)
-                            wBoxGui := CreateDashedBoxGui(bx1, by1, bw, bh, "0x00FFFF", 2, 12, 6)
+                            if (ShowDashedBox) {
+                                GetDetectBoxCoords(4, &bx1, &by1, &bx2, &by2)
+                                bw := Max(1, bx2 - bx1), bh := Max(1, by2 - by1)
+                                wBoxGui := CreateDashedBoxGui(bx1, by1, bw, bh, "0x00FFFF", 2, 12, 6)
+                            } else {
+                                wBoxGui := ""
+                            }
                         } catch {
                             wBoxGui := ""
                         }
@@ -3038,7 +3186,7 @@ RunNewSequence(bypassConfirm := false) {
                                     wSuccess := true
                                     interfaceDisappearMs := A_TickCount - wHoldStart
                                     ShowTip("15-1. 偵測到介面消失：緩衝等待 1 秒後鬆開 W...")
-                                    CountdownSleep(1000, "15-1. 介面消失：緩衝等待 1 秒準備鬆開 W")
+                                    CountdownSleep(2000, "15-1. 介面消失：緩衝等待 2 秒準備鬆開 W")
                                     break
                                 }
 
@@ -3632,9 +3780,13 @@ StopGasAndClean() {
     if (isEditBoxMode) {
         isEditBoxMode := false
         SetTimer(UpdateEditBoxCoords, 0)
+        SetTimer(PerformEditBoxDetection, 0)
         if (EditBoxWindowGui != "") {
             try EditBoxWindowGui.Destroy()
             EditBoxWindowGui := ""
+            EditBoxHeaderCtrl := ""
+            EditBoxInfoCtrl := ""
+            EditBoxStatusCtrl := ""
         }
         if (EditBoxMenuGui != "") {
             try EditBoxMenuGui.Destroy()
@@ -4269,9 +4421,93 @@ HoldWWithPeriodicKeys(totalMs, prefix, &isRunning) {
     return isRunning
 }
 
+UpdateEditBoxLayout() {
+    global EditBoxWindowGui, EditBoxBodyCtrl, EditBoxHeaderCtrl, EditBoxInfoCtrl
+    global EditBoxResizeWCtrl, EditBoxResizeHCtrl, EditBoxResizeCornerCtrl, curEditBoxW, curEditBoxH
+
+    w := curEditBoxW
+    h := curEditBoxH
+
+    try {
+        WinMove(, , w + 28, h + 28, "ahk_id " EditBoxWindowGui.Hwnd)
+        if (EditBoxBodyCtrl != "")
+            EditBoxBodyCtrl.Move(0, 0, w, h)
+        if (EditBoxHeaderCtrl != "")
+            EditBoxHeaderCtrl.Move(125, 2, Max(10, w - 130), 20)
+        if (EditBoxInfoCtrl != "")
+            EditBoxInfoCtrl.Move(0, 24, w, Max(20, h - 24))
+        if (EditBoxResizeWCtrl != "")
+            EditBoxResizeWCtrl.Move(w, Max(0, Floor(h / 2) - 13), 26, 26)
+        if (EditBoxResizeHCtrl != "")
+            EditBoxResizeHCtrl.Move(Max(0, Floor(w / 2) - 13), h, 26, 26)
+        if (EditBoxResizeCornerCtrl != "")
+            EditBoxResizeCornerCtrl.Move(w, h, 26, 26)
+    }
+}
+
+StartResizeWidth() {
+    global EditBoxWindowGui, curEditBoxW, curEditBoxH
+    CoordMode("Mouse", "Screen")
+    MouseGetPos(&startX, )
+    startW := curEditBoxW
+    while GetKeyState("LButton", "P") {
+        MouseGetPos(&curX, )
+        newW := Max(30, startW + (curX - startX))
+        if (newW != curEditBoxW) {
+            curEditBoxW := newW
+            UpdateEditBoxLayout()
+            UpdateEditBoxCoords()
+        }
+        Sleep(15)
+    }
+    UpdateEditBoxCoords()
+    PerformEditBoxDetection()
+}
+
+StartResizeHeight() {
+    global EditBoxWindowGui, curEditBoxW, curEditBoxH
+    CoordMode("Mouse", "Screen")
+    MouseGetPos(, &startY)
+    startH := curEditBoxH
+    while GetKeyState("LButton", "P") {
+        MouseGetPos(, &curY)
+        newH := Max(25, startH + (curY - startY))
+        if (newH != curEditBoxH) {
+            curEditBoxH := newH
+            UpdateEditBoxLayout()
+            UpdateEditBoxCoords()
+        }
+        Sleep(15)
+    }
+    UpdateEditBoxCoords()
+    PerformEditBoxDetection()
+}
+
+StartResizeCorner() {
+    global EditBoxWindowGui, curEditBoxW, curEditBoxH
+    CoordMode("Mouse", "Screen")
+    MouseGetPos(&startX, &startY)
+    startW := curEditBoxW
+    startH := curEditBoxH
+    while GetKeyState("LButton", "P") {
+        MouseGetPos(&curX, &curY)
+        newW := Max(30, startW + (curX - startX))
+        newH := Max(25, startH + (curY - startY))
+        if (newW != curEditBoxW || newH != curEditBoxH) {
+            curEditBoxW := newW
+            curEditBoxH := newH
+            UpdateEditBoxLayout()
+            UpdateEditBoxCoords()
+        }
+        Sleep(15)
+    }
+    UpdateEditBoxCoords()
+    PerformEditBoxDetection()
+}
+
 WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
     global MyGui, GuiBtns, isGasOn, isSequenceRunning, isEnterSpamRunning, isNewSequenceRunning, isBuyCarRunning, CurrentConfirmUpdateFn, isRivalRunning
-    global isEditBoxMode, EditBoxWindowGui
+    global isEditBoxMode, EditBoxWindowGui, curEditBoxW, curEditBoxH
 
     if (isEditBoxMode && EditBoxWindowGui != "") {
         guiHwnd := EditBoxWindowGui.Hwnd
@@ -4281,8 +4517,30 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
             rootHwnd := hwnd
         }
         if (hwnd == guiHwnd || rootHwnd == guiHwnd) {
-            PostMessage(0xA1, 2, 0, guiHwnd)
-            return 0
+            CoordMode("Mouse", "Screen")
+            MouseGetPos(&mX, &mY)
+            pt := Buffer(8, 0)
+            NumPut("Int", mX, pt, 0)
+            NumPut("Int", mY, pt, 4)
+            DllCall("user32\ScreenToClient", "Ptr", guiHwnd, "Ptr", pt)
+            winX := NumGet(pt, 0, "Int")
+            winY := NumGet(pt, 4, "Int")
+
+            ; 判斷是否點擊在右側、底端或右下角的縮放按鈕上
+            if (winX >= curEditBoxW && winY >= curEditBoxH) {
+                StartResizeCorner()
+                return 0
+            } else if (winX >= curEditBoxW) {
+                StartResizeWidth()
+                return 0
+            } else if (winY >= curEditBoxH) {
+                StartResizeHeight()
+                return 0
+            } else {
+                ; 點擊在水藍色本體 (0 <= winX < curEditBoxW, 0 <= winY < curEditBoxH) -> 拖移視窗
+                PostMessage(0xA1, 2, 0, guiHwnd) ; HTCAPTION
+                return 0
+            }
         }
     }
  
@@ -4488,9 +4746,16 @@ CheckAndWait5AMReboot(loopDurationSec, &isRunningVar) {
     return true
 }
 SendKey(keyName, pressDuration, waitDuration, &isRunning) {
+    global GameTitle, isPauseFocusCheck
     ; 如果已經停止執行，就回傳 false 讓迴圈中斷
     if (!isRunning) {
         return false
+    }
+
+    ; 🛡️ 按鍵發送前若遊戲視窗未活動，自動對焦遊戲視窗
+    if (!isPauseFocusCheck && WinExist(GameTitle) && !WinActive(GameTitle)) {
+        try WinActivate(GameTitle)
+        Sleep(50)
     }
  
     ; 按下按鍵
@@ -4506,8 +4771,14 @@ SendKey(keyName, pressDuration, waitDuration, &isRunning) {
     return isRunning
 }
 SendTextAction(strText, waitDuration, &isRunning) {
+    global GameTitle, isPauseFocusCheck
     if (!isRunning) {
         return false
+    }
+
+    if (!isPauseFocusCheck && WinExist(GameTitle) && !WinActive(GameTitle)) {
+        try WinActivate(GameTitle)
+        Sleep(50)
     }
 
     A_Clipboard := strText
@@ -4526,7 +4797,7 @@ CreateDashedBoxGui(x1, y1, w, h, color := "0x00FFFF", thickness := 2, dashLen :=
         return ""
     }
 
-    boxGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +E0x08000000")
+    boxGui := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x20 +E0x08000000 -DPIScale")
     try {
         if WinExist(GameTitle)
             boxGui.Opt("+Owner" WinGetID(GameTitle))
@@ -4595,7 +4866,13 @@ DetectYellowCard(timeoutMs := 15000) {
 
     while (isNewSequenceRunning) {
         if (!isPauseFocusCheck && !WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
-            break
+            if (WinExist(GameTitle)) {
+                try WinActivate(GameTitle)
+                Sleep(50)
+            }
+            if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
+                break
+            }
         }
 
         CoordMode("Pixel", "Screen")
@@ -4653,7 +4930,13 @@ DetectProgressBarEndNotBlack(timeoutMs := 30000) {
     isLoaded := false
     while (isNewSequenceRunning && (timeoutMs == 0 || A_TickCount - startTime < timeoutMs)) {
         if (!isPauseFocusCheck && !WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
-            break
+            if (WinExist(GameTitle)) {
+                try WinActivate(GameTitle)
+                Sleep(50)
+            }
+            if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
+                break
+            }
         }
 
         CoordMode("Pixel", "Screen")
@@ -4676,26 +4959,16 @@ DetectProgressBarEndNotBlack(timeoutMs := 30000) {
 }
 
 DetectBlackBelowProgress(timeoutMs := 0) {
-    global GameTitle, MyGui, isNewSequenceRunning, isPauseFocusCheck
+    global GameTitle, MyGui, isNewSequenceRunning, isPauseFocusCheck, ShowDashedBox
     startTime := A_TickCount
 
-    try {
-        WinGetPos(&wX, &wY, &wW, &wH, GameTitle)
-    } catch {
-        wX := 0, wY := 0, wW := A_ScreenWidth, wH := A_ScreenHeight
-    }
-
-    ; 畫面正中央區域 (35% ~ 65% 寬度, 35% ~ 65% 高度)
-    x1 := wX + Floor(wW * 0.35)
-    y1 := wY + Floor(wH * 0.35)
-    x2 := wX + Floor(wW * 0.65)
-    y2 := wY + Floor(wH * 0.65)
-
+    ; 取得 Mode 2 (黑色背景區域) 編輯後的偵測框座標
+    GetDetectBoxCoords(2, &x1, &y1, &x2, &y2)
     w := x2 - x1
     h := y2 - y1
 
     ; 建立細虛線外框 GUI 覆蓋顯示偵測範圍 (亮青色高對比細虛線外框，中央完全透明)
-    boxGui := CreateDashedBoxGui(x1, y1, w, h, "0x00FFFF", 2, 12, 6)
+    boxGui := ShowDashedBox ? CreateDashedBoxGui(x1, y1, w, h, "0x00FFFF", 2, 12, 6) : ""
 
     searchX1 := x1
     searchY1 := y1
@@ -4709,7 +4982,13 @@ DetectBlackBelowProgress(timeoutMs := 0) {
     found := false
     while (isNewSequenceRunning) {
         if (!isPauseFocusCheck && !WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
-            break
+            if (WinExist(GameTitle)) {
+                try WinActivate(GameTitle)
+                Sleep(50)
+            }
+            if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
+                break
+            }
         }
 
         CoordMode("Pixel", "Screen")
@@ -4869,6 +5148,28 @@ DetectColorByMode(mode := 1, showBox := false) {
         found := PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xCCFF00, 45)
               || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xBFFF00, 45)
               || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xADFF2F, 45)
+    } else if (mode >= 14) {
+        ; 14+. ⚡ 點技能動態格子螢光桃粉/洋紅/紫紅色檢測 (精準採樣自遊戲截圖色塊：#FA0084 / #EB007F / #FF007F)
+        found := PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFA0084, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xEB007F, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFF007F, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFA0080, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xEE007C, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xE6007A, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xFF1493, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xD0006F, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xDF0078, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xD80072, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xC2185B, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xAD1457, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0x9C27B0, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0x8E24AA, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xAB47BC, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0x7B1FA2, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0x8A2BE2, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0x9400D3, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0x9932CC, 48)
+              || PixelSearch(&fx, &fy, searchX1, searchY1, searchX2, searchY2, 0xBA55D3, 48)
     }
 
     if (showBox && boxGui != "") {
@@ -4886,14 +5187,14 @@ DetectRedRInDetails(mode := 10, showBox := true) {
 
 
 DetectTopLeftThreeBlackBarsExist(showBox := true) {
-    global GameTitle
+    global GameTitle, ShowDashedBox
 
     GetDetectBoxCoords(4, &x1, &y1, &x2, &y2)
     w := x2 - x1
     h := y2 - y1
 
     boxGui := ""
-    if (showBox) {
+    if (showBox && ShowDashedBox) {
         boxGui := CreateDashedBoxGui(x1, y1, w, h, "0x00FFFF", 2, 12, 6)
     }
 
@@ -5005,61 +5306,90 @@ SaveAllToIni() {
     global BuyCarMfgUp, BuyCarMfgDown, BuyCarMfgLeft, BuyCarMfgRight
     global BuyCarSelUp, BuyCarSelDown, BuyCarSelLeft, BuyCarSelRight
     global ShowIcon_Esc, ShowIcon_NewSeq, ShowIcon_Seq, ShowIcon_Rival, ShowIcon_BuyCar, ShowIcon_Gas, ShowIcon_EnterSpam, ShowIcon_EditBox, ShowIcon_Exit
+    global DetectBoxDefs
 
     iniFile := A_ScriptDir "\fh6.ini"
 
-    ; [Settings]
-    SafeIniWrite(String(LoadVehicleDelay), "Settings", "LoadVehicleDelay")
-    SafeIniWrite(String(LongPressDelay), "Settings", "LongPressDelay")
-    SafeIniWrite(String(EnableGamepad), "Settings", "EnableGamepad")
-    SafeIniWrite(IsSimplifyDividers ? "true" : "false", "Settings", "IsSimplifyDividers")
-    SafeIniWrite(AutoLoopEnabled ? "true" : "false", "Settings", "AutoLoopEnabled")
-    SafeIniWrite(String(LoopCountLimit), "Settings", "LoopCountLimit")
-    SafeIniWrite(SkillPath, "Settings", "SkillPath")
-    SafeIniWrite(String(SkillPoints), "Settings", "SkillPoints")
-    SafeIniWrite(SkillBuyCarEnabled ? "true" : "false", "Settings", "SkillBuyCarEnabled")
-    SafeIniWrite(String(NewSequenceLoopLimit), "Settings", "NewSequenceLoopLimit")
-    SafeIniWrite(labcode, "Settings", "labcode")
-    SafeIniWrite(String(BuyCarLoopLimit), "Settings", "BuyCarLoopLimit")
-    SafeIniWrite(String(RivalLoopLimit), "Settings", "RivalLoopLimit")
-    SafeIniWrite(String(RivalThrottleSec), "Settings", "RivalThrottleSec")
-    SafeIniWrite(Enable5AMWait ? "true" : "false", "Settings", "Enable5AMWait")
-    SafeIniWrite(String(RebootHour), "Settings", "RebootHour")
-    SafeIniWrite(String(RebootWaitMin), "Settings", "RebootWaitMin")
-    SafeIniWrite(ShowDashedBox ? "true" : "false", "Settings", "ShowDashedBox")
+    iniStr := "[Settings]`n"
+    iniStr .= "LoadVehicleDelay=" String(LoadVehicleDelay) "`n"
+    iniStr .= "LongPressDelay=" String(LongPressDelay) "`n"
+    iniStr .= "EnableGamepad=" String(EnableGamepad) "`n"
+    iniStr .= "IsSimplifyDividers=" (IsSimplifyDividers ? "true" : "false") "`n"
+    iniStr .= "AutoLoopEnabled=" (AutoLoopEnabled ? "true" : "false") "`n"
+    iniStr .= "LoopCountLimit=" String(LoopCountLimit) "`n"
+    iniStr .= "SkillPath=" SkillPath "`n"
+    iniStr .= "SkillPoints=" String(SkillPoints) "`n"
+    iniStr .= "SkillBuyCarEnabled=" (SkillBuyCarEnabled ? "true" : "false") "`n"
+    iniStr .= "NewSequenceLoopLimit=" String(NewSequenceLoopLimit) "`n"
+    iniStr .= "labcode=" labcode "`n"
+    iniStr .= "BuyCarLoopLimit=" String(BuyCarLoopLimit) "`n"
+    iniStr .= "RivalLoopLimit=" String(RivalLoopLimit) "`n"
+    iniStr .= "RivalThrottleSec=" String(RivalThrottleSec) "`n"
+    iniStr .= "Enable5AMWait=" (Enable5AMWait ? "true" : "false") "`n"
+    iniStr .= "RebootHour=" String(RebootHour) "`n"
+    iniStr .= "RebootWaitMin=" String(RebootWaitMin) "`n"
+    iniStr .= "ShowDashedBox=" (ShowDashedBox ? "true" : "false") "`n`n"
 
-    ; [BuyCar]
-    SafeIniWrite(String(BuyCarMfgUp), "BuyCar", "BuyCarMfgUp")
-    SafeIniWrite(String(BuyCarMfgDown), "BuyCar", "BuyCarMfgDown")
-    SafeIniWrite(String(BuyCarMfgLeft), "BuyCar", "BuyCarMfgLeft")
-    SafeIniWrite(String(BuyCarMfgRight), "BuyCar", "BuyCarMfgRight")
-    SafeIniWrite(String(BuyCarSelUp), "BuyCar", "BuyCarSelUp")
-    SafeIniWrite(String(BuyCarSelDown), "BuyCar", "BuyCarSelDown")
-    SafeIniWrite(String(BuyCarSelLeft), "BuyCar", "BuyCarSelLeft")
-    SafeIniWrite(String(BuyCarSelRight), "BuyCar", "BuyCarSelRight")
+    iniStr .= "[BuyCar]`n"
+    iniStr .= "BuyCarMfgUp=" String(BuyCarMfgUp) "`n"
+    iniStr .= "BuyCarMfgDown=" String(BuyCarMfgDown) "`n"
+    iniStr .= "BuyCarMfgLeft=" String(BuyCarMfgLeft) "`n"
+    iniStr .= "BuyCarMfgRight=" String(BuyCarMfgRight) "`n"
+    iniStr .= "BuyCarSelUp=" String(BuyCarSelUp) "`n"
+    iniStr .= "BuyCarSelDown=" String(BuyCarSelDown) "`n"
+    iniStr .= "BuyCarSelLeft=" String(BuyCarSelLeft) "`n"
+    iniStr .= "BuyCarSelRight=" String(BuyCarSelRight) "`n`n"
 
-    ; [Icons]
-    SafeIniWrite(ShowIcon_Esc ? "true" : "false", "Icons", "ShowIcon_Esc")
-    SafeIniWrite(ShowIcon_NewSeq ? "true" : "false", "Icons", "ShowIcon_NewSeq")
-    SafeIniWrite(ShowIcon_Seq ? "true" : "false", "Icons", "ShowIcon_Seq")
-    SafeIniWrite(ShowIcon_Rival ? "true" : "false", "Icons", "ShowIcon_Rival")
-    SafeIniWrite(ShowIcon_BuyCar ? "true" : "false", "Icons", "ShowIcon_BuyCar")
-    SafeIniWrite(ShowIcon_Gas ? "true" : "false", "Icons", "ShowIcon_Gas")
-    SafeIniWrite(ShowIcon_EnterSpam ? "true" : "false", "Icons", "ShowIcon_EnterSpam")
-    SafeIniWrite(ShowIcon_EditBox ? "true" : "false", "Icons", "ShowIcon_EditBox")
-    SafeIniWrite(ShowIcon_Exit ? "true" : "false", "Icons", "ShowIcon_Exit")
+    iniStr .= "[Icons]`n"
+    iniStr .= "ShowIcon_Esc=" (ShowIcon_Esc ? "true" : "false") "`n"
+    iniStr .= "ShowIcon_NewSeq=" (ShowIcon_NewSeq ? "true" : "false") "`n"
+    iniStr .= "ShowIcon_Seq=" (ShowIcon_Seq ? "true" : "false") "`n"
+    iniStr .= "ShowIcon_Rival=" (ShowIcon_Rival ? "true" : "false") "`n"
+    iniStr .= "ShowIcon_BuyCar=" (ShowIcon_BuyCar ? "true" : "false") "`n"
+    iniStr .= "ShowIcon_Gas=" (ShowIcon_Gas ? "true" : "false") "`n"
+    iniStr .= "ShowIcon_EnterSpam=" (ShowIcon_EnterSpam ? "true" : "false") "`n"
+    iniStr .= "ShowIcon_EditBox=" (ShowIcon_EditBox ? "true" : "false") "`n"
+    iniStr .= "[DetectBoxes]`n"
+    EnsureSkillNodeDetectBoxDefs()
+    totalModes := GetTotalDetectBoxCount()
+    Loop totalModes {
+        mode := A_Index
+        box := DetectBoxDefs[mode]
+        refVarX := (box.ref == "Viewport") ? "vpX" : "wX"
+        refVarW := (box.ref == "Viewport") ? "vpW" : "wW"
+        refVarY := (box.ref == "Viewport") ? "vpY" : "wY"
+        refVarH := (box.ref == "Viewport") ? "vpH" : "wH"
 
-    ; [DetectBoxes]
-    SaveDetectBoxesToIni()
+        valStr := Format("x1 := {} + Floor({} * {:.3f}), y1 := {} + Floor({} * {:.3f}), x2 := {} + Floor({} * {:.3f}), y2 := {} + Floor({} * {:.3f})",
+            refVarX, refVarW, box.x1,
+            refVarY, refVarH, box.y1,
+            refVarX, refVarW, box.x2,
+            refVarY, refVarH, box.y2)
+
+        iniStr .= "Mode" mode "=" valStr "`n"
+    }
+
+    Loop 5 {
+        try {
+            f := FileOpen(iniFile, "w", "UTF-8")
+            f.Write(iniStr)
+            f.Close()
+            return
+        } catch {
+            Sleep(30)
+        }
+    }
 }
 
 LoadDetectBoxesFromIni() {
     global DetectBoxDefs
+    EnsureSkillNodeDetectBoxDefs()
     iniFile := A_ScriptDir "\fh6.ini"
     if !FileExist(iniFile)
         return
 
-    Loop 13 {
+    totalModes := GetTotalDetectBoxCount()
+    Loop totalModes {
         mode := A_Index
         try {
             valStr := IniRead(iniFile, "DetectBoxes", "Mode" mode, "")
@@ -5084,8 +5414,10 @@ LoadDetectBoxesFromIni() {
 
 SaveDetectBoxesToIni() {
     global DetectBoxDefs
+    EnsureSkillNodeDetectBoxDefs()
     iniFile := A_ScriptDir "\fh6.ini"
-    Loop 13 {
+    totalModes := GetTotalDetectBoxCount()
+    Loop totalModes {
         mode := A_Index
         box := DetectBoxDefs[mode]
         refVarX := (box.ref == "Viewport") ? "vpX" : "wX"
@@ -5105,6 +5437,7 @@ SaveDetectBoxesToIni() {
 
 GetDetectBoxCoords(mode, &x1, &y1, &x2, &y2) {
     global DetectBoxDefs, DefaultDetectBoxDefs
+    EnsureSkillNodeDetectBoxDefs()
     GetTargetGameWindowPos(&wX, &wY, &wW, &wH)
     GetGameViewportClientRect(&vpX, &vpY, &vpW, &vpH)
 
@@ -5142,26 +5475,38 @@ ToggleEditBoxMode() {
         }
 
         isEditBoxMode := true
+        currentSelectedEditMode := 0
         CreateEditBoxMenuGui()
-        SelectEditBoxMode(currentSelectedEditMode)
         SetTimer(UpdateEditBoxCoords, 50)
-        ShowTip("已進入編輯偵測框模式 (可拖移/縮放視窗，再點擊 ⿴ 儲存並離開)")
+        ShowTip("已進入編輯偵測框模式 (請由選單點選欲編輯項目)")
     } else {
         isEditBoxMode := false
+        currentSelectedEditMode := 0
         SetTimer(UpdateEditBoxCoords, 0)
+        SetTimer(PerformEditBoxDetection, 0)
         
         SaveAllToIni()
 
         if (EditBoxWindowGui != "") {
             try EditBoxWindowGui.Destroy()
             EditBoxWindowGui := ""
+            EditBoxBodyCtrl := ""
             EditBoxHeaderCtrl := ""
             EditBoxInfoCtrl := ""
             EditBoxStatusCtrl := ""
+            EditBoxResizeWCtrl := ""
+            EditBoxResizeHCtrl := ""
+            EditBoxResizeCornerCtrl := ""
         }
         if (EditBoxMenuGui != "") {
             try EditBoxMenuGui.Destroy()
             EditBoxMenuGui := ""
+        }
+
+        try {
+            if WinExist(GameTitle) {
+                WinActivate(GameTitle)
+            }
         }
 
         ShowTip("已離開編輯模式並成功儲存設定至 fh6.ini")
@@ -5176,6 +5521,9 @@ CreateEditBoxMenuGui() {
         try EditBoxMenuGui.Destroy()
     }
 
+    EnsureSkillNodeDetectBoxDefs()
+    totalModes := GetTotalDetectBoxCount()
+
     EditBoxMenuGui := Gui("+AlwaysOnTop -MaximizeBox -MinimizeBox +ToolWindow", "⿴ 偵測與系統功能選單")
     EditBoxMenuGui.BackColor := "0x1E1E2E"
     EditBoxMenuGui.SetFont("s10 bold c0x00FFFF", "Segoe UI")
@@ -5184,11 +5532,12 @@ CreateEditBoxMenuGui() {
 
     EditBoxMenuGui.SetFont("norm s10 cWhite", "Segoe UI")
     items := []
-    Loop 13 {
+    Loop totalModes {
         items.Push(DetectBoxDefs[A_Index].name)
     }
 
-    lb := EditBoxMenuGui.Add("ListBox", "x15 y35 w290 r13 cWhite Background0x181825 Choose" currentSelectedEditMode, items)
+    chooseOpt := (currentSelectedEditMode > 0 && currentSelectedEditMode <= totalModes) ? (" Choose" currentSelectedEditMode) : ""
+    lb := EditBoxMenuGui.Add("ListBox", "x15 y35 w290 r13 cWhite Background0x181825" chooseOpt, items)
     lb.OnEvent("Change", (ctrl, info) => SelectEditBoxMode(ctrl.Value))
 
     resetOneBtn := EditBoxMenuGui.Add("Button", "x15 y295 w140 h30", "🔄 重置此項預設")
@@ -5279,10 +5628,177 @@ CreateEditBoxMenuGui() {
     EditBoxMenuGui.Show("X" menuX " Y" menuY " W320 H615 NoActivate")
 }
 
+SelectEditBoxMode(mode) {
+    global currentSelectedEditMode, EditBoxWindowGui, EditBoxBodyCtrl, EditBoxHeaderCtrl, EditBoxInfoCtrl, EditBoxStatusCtrl
+    global EditBoxResizeWCtrl, EditBoxResizeHCtrl, EditBoxResizeCornerCtrl, curEditBoxW, curEditBoxH
+    global DetectBoxDefs, GameTitle, lastEditBoxPos
+
+    ; 切換到新偵測框時，立刻將上一個與全域設定同步儲存至 ini
+    SaveAllToIni()
+
+    currentSelectedEditMode := mode
+    GetDetectBoxCoords(mode, &x1, &y1, &x2, &y2)
+    w := Max(30, x2 - x1)
+    h := Max(25, y2 - y1)
+
+    curEditBoxW := w
+    curEditBoxH := h
+    lastEditBoxPos.x := x1
+    lastEditBoxPos.y := y1
+    lastEditBoxPos.w := w
+    lastEditBoxPos.h := h
+
+    if (EditBoxWindowGui != "") {
+        try EditBoxWindowGui.Destroy()
+        EditBoxWindowGui := ""
+        EditBoxBodyCtrl := ""
+        EditBoxHeaderCtrl := ""
+        EditBoxInfoCtrl := ""
+        EditBoxStatusCtrl := ""
+        EditBoxResizeWCtrl := ""
+        EditBoxResizeHCtrl := ""
+        EditBoxResizeCornerCtrl := ""
+    }
+
+    ; 視窗尺寸為 w + 28, h + 28，背景色設為透明穿透色 0x000001 (外圍把手按鈕為同視窗完全貼合實體，零延遲零跑位)
+    EditBoxWindowGui := Gui("+AlwaysOnTop -Caption -Border +ToolWindow -DPIScale")
+    EditBoxWindowGui.BackColor := "0x000001"
+    WinSetTransColor("0x000001 180", EditBoxWindowGui.Hwnd)
+
+    ; 水藍色偵測框本體 (0, 0 到 w, h)
+    EditBoxBodyCtrl := EditBoxWindowGui.Add("Text", "x0 y0 w" w " h" h " Background0x00FFFF", "")
+
+    ; 左上角偵測狀態標籤
+    EditBoxWindowGui.SetFont("s9 bold cWhite", "Segoe UI")
+    EditBoxStatusCtrl := EditBoxWindowGui.Add("Text", "x5 y2 w115 h20 Center Background0x000000", "[ ⏳ 檢測中 ]")
+
+    ; 頂部標題說明
+    EditBoxWindowGui.SetFont("s10 bold cBlack", "Segoe UI")
+    EditBoxHeaderCtrl := EditBoxWindowGui.Add("Text", "x125 y2 w" Max(10, w - 130) " h20 Center Background0x00FFFF", DetectBoxDefs[mode].desc)
+
+    ; 中間座標數據
+    EditBoxWindowGui.SetFont("norm s9 cBlack", "Segoe UI")
+    EditBoxInfoCtrl := EditBoxWindowGui.Add("Text", "x0 y24 w" w " h" Max(20, h - 24) " Center Background0x00FFFF", "")
+
+    ; ↔ 右側水平縮放把手 (緊貼水藍色右外緣，完全在偵測框外)
+    EditBoxWindowGui.SetFont("s10 bold cWhite", "Segoe UI")
+    EditBoxResizeWCtrl := EditBoxWindowGui.Add("Text", "x" w " y" Max(0, Floor(h/2) - 13) " w26 h26 Center 0x200 Background0x1A2634", "↔")
+
+    ; ↕ 底部垂直縮放把手 (緊貼水藍色底外緣，完全在偵測框外)
+    EditBoxResizeHCtrl := EditBoxWindowGui.Add("Text", "x" Max(0, Floor(w/2) - 13) " y" h " w26 h26 Center 0x200 Background0x1A2634", "↕")
+
+    ; ⤡ 右下角雙向縮放把手 (緊貼水藍色右下外緣，完全在偵測框外)
+    EditBoxResizeCornerCtrl := EditBoxWindowGui.Add("Text", "x" w " y" h " w26 h26 Center 0x200 Background0x008888", "⤡")
+
+    EditBoxWindowGui.Show("x" x1 " y" y1 " w" (w + 28) " h" (h + 28) " NoActivate")
+
+    ; 切換開啟新偵測框時，立刻進行一次單次偵測
+    PerformEditBoxDetection()
+}
+
+UpdateEditBoxCoords() {
+    global isEditBoxMode, EditBoxWindowGui, EditBoxInfoCtrl, EditBoxStatusCtrl
+    global currentSelectedEditMode, DetectBoxDefs, curEditBoxW, curEditBoxH, lastEditBoxPos
+
+    if (!isEditBoxMode || EditBoxWindowGui == "")
+        return
+
+    try {
+        WinGetPos(&gX, &gY, , , "ahk_id " EditBoxWindowGui.Hwnd)
+    } catch {
+        return
+    }
+
+    gW := curEditBoxW
+    gH := curEditBoxH
+
+    ; 🛡️ 防呆保護：過濾載入失敗/最小化等異常 0 座標尺寸，避免寫入 0 壞損資料
+    if (gW <= 10 || gH <= 10)
+        return
+
+    ; 當使用者實際用滑鼠拖移位置 (gX, gY) 或調整尺寸 (gW, gH) 時更新座標
+    if (gX == lastEditBoxPos.x && gY == lastEditBoxPos.y && gW == lastEditBoxPos.w && gH == lastEditBoxPos.h)
+        return
+
+    lastEditBoxPos.x := gX
+    lastEditBoxPos.y := gY
+    lastEditBoxPos.w := gW
+    lastEditBoxPos.h := gH
+
+    mode := currentSelectedEditMode
+    box := DetectBoxDefs[mode]
+
+    if (box.ref == "Viewport") {
+        GetGameViewportClientRect(&refX, &refY, &refW, &vpH)
+        refH := vpH
+    } else {
+        GetTargetGameWindowPos(&refX, &refY, &refW, &refH)
+    }
+
+    if (refW <= 0 || refH <= 0)
+        return
+
+    x1_pct := Max(0.0, Min(1.0, (gX - refX) / refW))
+    y1_pct := Max(0.0, Min(1.0, (gY - refY) / refH))
+    x2_pct := Max(x1_pct + 0.001, Min(1.0, (gX + gW - refX) / refW))
+    y2_pct := Max(y1_pct + 0.001, Min(1.0, (gY + gH - refY) / refH))
+
+    box.x1 := Round(x1_pct, 4)
+    box.y1 := Round(y1_pct, 4)
+    box.x2 := Round(x2_pct, 4)
+    box.y2 := Round(y2_pct, 4)
+
+    try {
+        if (EditBoxInfoCtrl != "") {
+            infoText := Format("X: {:.1f}% ~ {:.1f}% ({:.3f} ~ {:.3f})`nY: {:.1f}% ~ {:.1f}% ({:.3f} ~ {:.3f})",
+                x1_pct * 100, x2_pct * 100, x1_pct, x2_pct,
+                y1_pct * 100, y2_pct * 100, y1_pct, y2_pct)
+            EditBoxInfoCtrl.Value := infoText
+        }
+        if (EditBoxStatusCtrl != "") {
+            EditBoxStatusCtrl.Value := "[ ⏳ 調整中... ]"
+        }
+    }
+
+    ; 停止持續偵測，於移動停止 200ms 後執行一次單次無閃爍偵測與儲存
+    SetTimer(PerformEditBoxDetection, -200)
+}
+
+PerformEditBoxDetection() {
+    global isEditBoxMode, EditBoxStatusCtrl, currentSelectedEditMode, EditBoxWindowGui
+
+    if (!isEditBoxMode || EditBoxStatusCtrl == "")
+        return
+
+    ; 🛡️ 若使用者目前正按住滑鼠左鍵拖移/調整視窗中，遞延 200ms 後再檢測，絕對不調用 Hide() 中斷拖曳！
+    if GetKeyState("LButton", "P") {
+        SetTimer(PerformEditBoxDetection, -200)
+        return
+    }
+
+    ; 無閃爍 15ms 隱藏/恢復，確保 PixelSearch 擷取純淨遊戲底層畫面，避開水藍色框干擾
+    try EditBoxWindowGui.Hide()
+    Sleep(15)
+
+    ; 執行單次顏色彩色與 UI 偵測 (非持續偵測)
+    found := DetectColorByMode(currentSelectedEditMode, false)
+
+    try EditBoxWindowGui.Show("NoActivate")
+
+    try {
+        if (found) {
+            EditBoxStatusCtrl.Value := "[ ✅ 已偵測到 ]"
+        } else {
+            EditBoxStatusCtrl.Value := "[ ❌ 未檢測到 ]"
+        }
+    }
+}
+
 ResetDetectBoxToDefault(mode := 0) {
-    global DetectBoxDefs, DefaultDetectBoxDefs, currentSelectedEditMode
+    EnsureSkillNodeDetectBoxDefs()
+    totalModes := GetTotalDetectBoxCount()
     if (mode == 0) {
-        Loop 13 {
+        Loop totalModes {
             m := A_Index
             def := DefaultDetectBoxDefs[m]
             DetectBoxDefs[m].x1 := def.x1
@@ -5290,7 +5806,7 @@ ResetDetectBoxToDefault(mode := 0) {
             DetectBoxDefs[m].x2 := def.x2
             DetectBoxDefs[m].y2 := def.y2
         }
-        ShowTip("已將全數 13 個偵測框重置為原廠預設值！")
+        ShowTip(Format("已將全數 {} 個偵測框重置為原廠預設值！", totalModes))
     } else {
         def := DefaultDetectBoxDefs[mode]
         DetectBoxDefs[mode].x1 := def.x1
@@ -5300,7 +5816,9 @@ ResetDetectBoxToDefault(mode := 0) {
         ShowTip(Format("已將「{}」重置為原廠預設值！", DetectBoxDefs[mode].name))
     }
     SaveAllToIni()
-    SelectEditBoxMode(currentSelectedEditMode)
+    if (currentSelectedEditMode > 0) {
+        SelectEditBoxMode(currentSelectedEditMode)
+    }
 }
 
 SaveIniAsAHKDefaults() {
@@ -5317,40 +5835,50 @@ SaveIniAsAHKDefaults() {
 
     try {
         content := FileRead(ahkFile, "UTF-8")
+        EnsureSkillNodeDetectBoxDefs()
+        totalModes := GetTotalDetectBoxCount()
 
         ; 1. 替換 DetectBoxDefs 與 DefaultDetectBoxDefs 地圖
         bOpen := "{", bClose := "}"
         newDefStr := "global DetectBoxDefs := Map(`n"
-        Loop 13 {
+        Loop totalModes {
             m := A_Index
             box := DetectBoxDefs[m]
-            Comma := (m < 13) ? "," : ""
+            Comma := (m < totalModes) ? "," : ""
             newDefStr .= Format("    {:d},  " bOpen " name: `"{}`", desc: `"{}`", ref: `"{}`",   x1: {:.3f}, y1: {:.3f}, x2: {:.3f}, y2: {:.3f} " bClose "{}`n",
                 m, box.name, box.desc, box.ref, box.x1, box.y1, box.x2, box.y2, Comma)
         }
         newDefStr .= ")"
 
         newDefaultStr := "global DefaultDetectBoxDefs := Map(`n"
-        Loop 13 {
+        Loop totalModes {
             m := A_Index
             box := DetectBoxDefs[m]
-            Comma := (m < 13) ? "," : ""
+            Comma := (m < totalModes) ? "," : ""
             newDefaultStr .= Format("    {:d},  " bOpen " x1: {:.3f}, y1: {:.3f}, x2: {:.3f}, y2: {:.3f} " bClose "{}`n",
                 m, box.x1, box.y1, box.x2, box.y2, Comma)
         }
         newDefaultStr .= ")"
 
-        if RegExMatch(content, "s)global DetectBoxDefs := Map\(.*?\)", &match1) {
-            content := RegExReplace(content, "s)global DetectBoxDefs := Map\(.*?\)", newDefStr, , 1)
+        if RegExMatch(content, "s)global DetectBoxDefs := Map\(.*?\r?\n\)", &match1) {
+            safeStr := StrReplace(newDefStr, "$", "$$")
+            content := RegExReplace(content, "s)global DetectBoxDefs := Map\(.*?\r?\n\)", safeStr, , 1)
         }
-        if RegExMatch(content, "s)global DefaultDetectBoxDefs := Map\(.*?\)", &match2) {
-            content := RegExReplace(content, "s)global DefaultDetectBoxDefs := Map\(.*?\)", newDefaultStr, , 1)
+        if RegExMatch(content, "s)global DefaultDetectBoxDefs := Map\(.*?\r?\n\)", &match2) {
+            safeStr2 := StrReplace(newDefaultStr, "$", "$$")
+            content := RegExReplace(content, "s)global DefaultDetectBoxDefs := Map\(.*?\r?\n\)", safeStr2, , 1)
         }
 
-        ; 2. 替換全域變數預設值 (全行程各種設定)
         ReplaceVar(&src, varName, newVal) {
-            valStr := (Type(newVal) == "String") ? '"' newVal '"' : (newVal = true ? "true" : (newVal = false ? "false" : String(newVal)))
-            src := RegExReplace(src, "m)^(\s*global\s+" varName "\s*:=\s*)[^;`r`n]+", "${1}" valStr, , 1)
+            valStr := ""
+            if (Type(newVal) == "String") {
+                valStr := '"' newVal '"'
+            } else if (Type(newVal) == "Boolean") {
+                valStr := newVal ? "true" : "false"
+            } else {
+                valStr := String(newVal)
+            }
+            src := RegExReplace(src, "m)^(\s*global\s+" varName "\s*:=\s*)[^;`r`n]+?(\s*)(?=;|\r|\n|$)", "${1}" valStr " ", , 1)
         }
 
         ReplaceVar(&content, "EnableGamepad", EnableGamepad)
@@ -5396,7 +5924,7 @@ SaveIniAsAHKDefaults() {
         f.Write(content)
         f.Close()
 
-        Loop 13 {
+        Loop totalModes {
             m := A_Index
             DefaultDetectBoxDefs[m].x1 := DetectBoxDefs[m].x1
             DefaultDetectBoxDefs[m].y1 := DetectBoxDefs[m].y1
@@ -5408,154 +5936,4 @@ SaveIniAsAHKDefaults() {
     } catch as err {
         ShowTip("⚠️ 寫回 AHK 預設值失敗：" err.Message)
     }
-}
-
-SelectEditBoxMode(mode) {
-    global currentSelectedEditMode, EditBoxWindowGui, EditBoxHeaderCtrl, EditBoxInfoCtrl, EditBoxStatusCtrl, DetectBoxDefs, GameTitle, lastEditBoxPos
-
-    ; 切換到新偵測框時，立刻將上一個與全域設定同步儲存至 ini
-    SaveAllToIni()
-
-    currentSelectedEditMode := mode
-    GetDetectBoxCoords(mode, &x1, &y1, &x2, &y2)
-    w := Max(20, x2 - x1)
-    h := Max(20, y2 - y1)
-
-    lastEditBoxPos.x := x1
-    lastEditBoxPos.y := y1
-    lastEditBoxPos.w := w
-    lastEditBoxPos.h := h
-
-    if (EditBoxWindowGui != "") {
-        try EditBoxWindowGui.Destroy()
-        EditBoxWindowGui := ""
-        EditBoxHeaderCtrl := ""
-        EditBoxInfoCtrl := ""
-        EditBoxStatusCtrl := ""
-    }
-
-    EditBoxWindowGui := Gui("+AlwaysOnTop +Resize -Caption +ToolWindow")
-    EditBoxWindowGui.BackColor := "0x00FFFF"
-    WinSetTransparent(180, EditBoxWindowGui.Hwnd)
-
-    ; 左上角偵測狀態標籤
-    EditBoxWindowGui.SetFont("s9 bold cWhite", "Segoe UI")
-    EditBoxStatusCtrl := EditBoxWindowGui.Add("Text", "x5 y2 w115 h20 Center Background0x000000", "[ ⏳ 檢測中 ]")
-
-    ; 頂部標題說明
-    EditBoxWindowGui.SetFont("s10 bold cBlack", "Segoe UI")
-    EditBoxHeaderCtrl := EditBoxWindowGui.Add("Text", "x125 y2 w875 h20 Center Background0x00FFFF", DetectBoxDefs[mode].desc)
-
-    ; 下方座標數據
-    EditBoxWindowGui.SetFont("norm s9 cBlack", "Segoe UI")
-    EditBoxInfoCtrl := EditBoxWindowGui.Add("Text", "x0 y24 w1000 h40 Center Background0x00FFFF", "")
-
-    EditBoxWindowGui.Show("X" x1 " Y" y1 " W" w " H" h " NoActivate")
-
-    try {
-        EditBoxWindowGui.GetPos(&gX, &gY, &gW, &gH)
-        lastEditBoxPos.x := gX
-        lastEditBoxPos.y := gY
-        lastEditBoxPos.w := gW
-        lastEditBoxPos.h := gH
-    } catch {
-        lastEditBoxPos.x := x1
-        lastEditBoxPos.y := y1
-        lastEditBoxPos.w := w
-        lastEditBoxPos.h := h
-    }
-
-    ; 切換開啟新偵測框時，立刻進行一次單次偵測
-    PerformEditBoxDetection()
-}
-
-
-
-UpdateEditBoxCoords() {
-    global isEditBoxMode, EditBoxWindowGui, EditBoxHeaderCtrl, EditBoxInfoCtrl, EditBoxStatusCtrl, currentSelectedEditMode, DetectBoxDefs, GameTitle, lastEditBoxPos
-
-    if (!isEditBoxMode || EditBoxWindowGui == "")
-        return
-
-    try {
-        EditBoxWindowGui.GetPos(&gX, &gY, &gW, &gH)
-    } catch {
-        return
-    }
-
-    ; 🛡️ 防呆保護：過濾載入失敗/最小化等異常 0 座標尺寸，避免寫入 0 壞損資料
-    if (gW <= 30 || gH <= 20)
-        return
-
-    ; 只有當使用者實際用滑鼠拖移或縮放變動視窗時，才更新座標
-    if (gX == lastEditBoxPos.x && gY == lastEditBoxPos.y && gW == lastEditBoxPos.w && gH == lastEditBoxPos.h)
-        return
-
-    lastEditBoxPos.x := gX
-    lastEditBoxPos.y := gY
-    lastEditBoxPos.w := gW
-    lastEditBoxPos.h := gH
-
-    mode := currentSelectedEditMode
-    box := DetectBoxDefs[mode]
-
-    if (box.ref == "Viewport") {
-        GetGameViewportClientRect(&refX, &refY, &refW, &vpH)
-        refH := vpH
-    } else {
-        GetTargetGameWindowPos(&refX, &refY, &refW, &refH)
-    }
-
-    if (refW <= 0 || refH <= 0)
-        return
-
-    x1_pct := Max(0.0, Min(1.0, (gX - refX) / refW))
-    y1_pct := Max(0.0, Min(1.0, (gY - refY) / refH))
-    x2_pct := Max(x1_pct + 0.001, Min(1.0, (gX + gW - refX) / refW))
-    y2_pct := Max(y1_pct + 0.001, Min(1.0, (gY + gH - refY) / refH))
-
-    box.x1 := Round(x1_pct, 3)
-    box.y1 := Round(y1_pct, 3)
-    box.x2 := Round(x2_pct, 3)
-    box.y2 := Round(y2_pct, 3)
-
-    try {
-        if (EditBoxHeaderCtrl != "") {
-            EditBoxHeaderCtrl.Move(125, 2, Max(10, gW - 125), 20)
-        }
-        if (EditBoxInfoCtrl != "") {
-            EditBoxInfoCtrl.Move(0, 24, gW, Max(20, gH - 24))
-            infoText := Format("X: {:.1f}% ~ {:.1f}% ({:.3f} ~ {:.3f})`nY: {:.1f}% ~ {:.1f}% ({:.3f} ~ {:.3f})",
-                x1_pct * 100, x2_pct * 100, x1_pct, x2_pct,
-                y1_pct * 100, y2_pct * 100, y1_pct, y2_pct)
-            EditBoxInfoCtrl.Value := infoText
-        }
-        if (EditBoxStatusCtrl != "") {
-            EditBoxStatusCtrl.Value := "[ ⏳ 調整中... ]"
-        }
-    }
-
-    ; 停止持續偵測，於移動縮放停止 300ms 後執行一次單次偵測與儲存
-    SetTimer(PerformEditBoxDetection, -300)
-}
-
-PerformEditBoxDetection() {
-    global isEditBoxMode, EditBoxStatusCtrl, currentSelectedEditMode
-
-    if (!isEditBoxMode || EditBoxStatusCtrl == "")
-        return
-
-    ; 執行單次顏色彩色與 UI 偵測 (非持續偵測)
-    found := DetectColorByMode(currentSelectedEditMode, false)
-
-    try {
-        if (found) {
-            EditBoxStatusCtrl.Value := "[ ✅ 已偵測到 ]"
-        } else {
-            EditBoxStatusCtrl.Value := "[ ❌ 未偵測到 ]"
-        }
-    }
-
-    ; 偵測完成後立即寫入儲存 ini
-    SaveAllToIni()
 }
