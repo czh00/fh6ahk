@@ -25,25 +25,91 @@ if !A_IsAdmin {
     }
 }
 
-; === 禁用 Win11 邊緣滑動手勢、視窗貼齊與觸發快捷鍵 ===
-DisableWin11EdgeActions() {
+; =================================================================
+; === Win11 邊緣滑動手勢、視窗貼齊與快捷鍵管理系統 ===
+; 說明：啟動時全面禁用手勢、貼齊與快捷鍵；退出 AHK 後 100% 自動還原啟用
+; =================================================================
+
+DisableWin11EdgeAndSnap() {
+    ; 1. 停用螢幕邊緣滑動手勢 (Edge Swipe)
     try RegWrite(0, "REG_DWORD", "HKCU\Software\Policies\Microsoft\Windows\EdgeUI", "AllowEdgeSwipe")
     try RegWrite(0, "REG_DWORD", "HKLM\SOFTWARE\Policies\Microsoft\Windows\EdgeUI", "AllowEdgeSwipe")
+    try RegWrite(1, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\ImmersiveShell\EdgeUi", "DisableEdgeSwipe")
+
+    ; 2. 停用桌面邊緣拖曳貼齊 (DockMoving / SnapSizing / WindowArrangementActive)
     try RegWrite("0", "REG_SZ", "HKCU\Control Panel\Desktop", "DockMoving")
+    try RegWrite("0", "REG_SZ", "HKCU\Control Panel\Desktop", "SnapSizing")
+    try RegWrite("0", "REG_SZ", "HKCU\Control Panel\Desktop", "WindowArrangementActive")
+
+    ; 3. 停用 Windows 11 進階貼齊佈局與輔助 (Snap Assist / SnapFill / JointResize / TaskGroups)
     try RegWrite(0, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "EnableSnapAssist")
     try RegWrite(0, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "SnapFill")
+    try RegWrite(0, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "JointResize")
+    try RegWrite(0, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "EnableTaskGroups")
+    try RegWrite(0, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "WindowArrangementActive")
+
+    ; 4. Windows 系統 API 即時停用 (0x0083 = SPI_SETWINARRANGING, 0x0091 = SPI_SETDOCKMOVING)
+    try DllCall("user32\SystemParametersInfoW", "UInt", 0x0083, "UInt", 0, "Ptr", 0, "UInt", 3) ; SPIF_UPDATEINIFILE(1) | SPIF_SENDCHANGE(2) = 3
+    try DllCall("user32\SystemParametersInfoW", "UInt", 0x0091, "UInt", 0, "Ptr", 0, "UInt", 3)
+    
+    ; 5. 廣播系統設定變更通知 (WM_SETTINGCHANGE = 0x001A)
+    try DllCall("user32\SendMessageTimeoutW", "Ptr", 0xFFFF, "UInt", 0x001A, "Ptr", 0, "Str", "Environment", "UInt", 2, "UInt", 500, "Ptr*", 0)
+    try DllCall("user32\SendMessageTimeoutW", "Ptr", 0xFFFF, "UInt", 0x001A, "Ptr", 0, "Str", "Policy", "UInt", 2, "UInt", 500, "Ptr*", 0)
 }
-DisableWin11EdgeActions()
 
-#w::return   ; 停用 Win+W (Win11 小工具 / Widgets)
-#n::return   ; 停用 Win+N (Win11 通知中心)
-#a::return   ; 停用 Win+A (Win11 快速設定)
-#z::return   ; 停用 Win+Z (Win11 視窗貼齊佈局 / Snap Layouts)
+RestoreWin11EdgeAndSnap(exitReason := "", exitCode := 0) {
+    ; 1. 恢復螢幕邊緣滑動手勢 (刪除 Policy 禁用項)
+    try RegDelete("HKCU\Software\Policies\Microsoft\Windows\EdgeUI", "AllowEdgeSwipe")
+    try RegDelete("HKLM\SOFTWARE\Policies\Microsoft\Windows\EdgeUI", "AllowEdgeSwipe")
+    try RegDelete("HKCU\Software\Microsoft\Windows\CurrentVersion\ImmersiveShell\EdgeUi", "DisableEdgeSwipe")
+    
+    ; 2. 恢復桌面邊緣拖曳貼齊 (DockMoving = 1, SnapSizing = 1, WindowArrangementActive = 1)
+    try RegWrite("1", "REG_SZ", "HKCU\Control Panel\Desktop", "DockMoving")
+    try RegWrite("1", "REG_SZ", "HKCU\Control Panel\Desktop", "SnapSizing")
+    try RegWrite("1", "REG_SZ", "HKCU\Control Panel\Desktop", "WindowArrangementActive")
 
-;OnExit( (*) => (
-;    ForceReleaseW_Hardware(),
-;     Send("{w up}{a up}{s up}{d up}{x up}{Space up}{Down up}{Shift up}{Ctrl up}{Alt up}{Enter up}{Esc up}")
-;))
+    ; 3. 恢復 Windows 11 進階貼齊佈局與輔助 (設回系統預設啟用值 1)
+    try RegWrite(1, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "EnableSnapAssist")
+    try RegWrite(1, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "SnapFill")
+    try RegWrite(1, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "JointResize")
+    try RegWrite(1, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "EnableTaskGroups")
+    try RegWrite(1, "REG_DWORD", "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced", "WindowArrangementActive")
+
+    ; 4. Windows 系統 API 即時啟用 (0x0083 = SPI_SETWINARRANGING, 0x0091 = SPI_SETDOCKMOVING)
+    try DllCall("user32\SystemParametersInfoW", "UInt", 0x0083, "UInt", 0, "Ptr", 1, "UInt", 3)
+    try DllCall("user32\SystemParametersInfoW", "UInt", 0x0091, "UInt", 0, "Ptr", 1, "UInt", 3)
+
+    ; 5. 廣播系統設定變更通知讓 Explorer 即時重載
+    try DllCall("user32\SendMessageTimeoutW", "Ptr", 0xFFFF, "UInt", 0x001A, "Ptr", 0, "Str", "Environment", "UInt", 2, "UInt", 500, "Ptr*", 0)
+    try DllCall("user32\SendMessageTimeoutW", "Ptr", 0xFFFF, "UInt", 0x001A, "Ptr", 0, "Str", "Policy", "UInt", 2, "UInt", 500, "Ptr*", 0)
+    try DllCall("shell32\SHChangeNotify", "UInt", 0x08000000, "UInt", 0, "Ptr", 0, "Ptr", 0) ; SHCNE_ASSOCCHANGED
+    
+    ; 6. 安全釋放可能按住的按鍵
+    try ForceReleaseW_Hardware()
+    try Send("{w up}{a up}{s up}{d up}{x up}{Space up}{Down up}{Shift up}{Ctrl up}{Alt up}{Enter up}{Esc up}")
+}
+
+; 執行禁用設定並註冊腳本退出時的自動還原回呼函數
+DisableWin11EdgeAndSnap()
+OnExit(RestoreWin11EdgeAndSnap)
+
+; --- 停用 Win11 邊緣滑動手勢與視窗貼齊相關快捷鍵 ---
+#w::return        ; 停用 Win+W (Win11 小工具 / Widgets，左側滑動手勢對應)
+#n::return        ; 停用 Win+N (Win11 通知中心與行事曆，右側滑動手勢對應)
+#a::return        ; 停用 Win+A (Win11 快速設定面板)
+#z::return        ; 停用 Win+Z (Win11 視窗貼齊版面配置 / Snap Layouts)
+#Left::return     ; 停用 Win+Left (向左貼齊視窗)
+#Right::return    ; 停用 Win+Right (向右貼齊視窗)
+#Up::return       ; 停用 Win+Up (最大化 / 向上貼齊視窗)
+#Down::return     ; 停用 Win+Down (最小化 / 還原視窗)
+#!Left::return    ; 停用 Win+Alt+Left (貼齊佈局選取)
+#!Right::return   ; 停用 Win+Alt+Right (貼齊佈局選取)
+#!Up::return      ; 停用 Win+Alt+Up (貼齊佈局上半部)
+#!Down::return    ; 停用 Win+Alt+Down (貼齊佈局下半部)
+#+Left::return    ; 停用 Win+Shift+Left (跨螢幕移動視窗)
+#+Right::return   ; 停用 Win+Shift+Right (跨螢幕移動視窗)
+#+Up::return      ; 停用 Win+Shift+Up (垂直延伸最大化)
+#+Down::return    ; 停用 Win+Shift+Down (還原垂直延伸)
 
 ; =================================================================
 ; [全域自動化參數設定區]
@@ -477,13 +543,13 @@ OnSkipClick(*) {
     global StopAfterCurrentLoop, SkipBtn
     if (StopAfterCurrentLoop) {
         StopAfterCurrentLoop := false
-        SkipBtn.Opt("cWhite")
+        SkipBtn.SetFont("cWhite")
         SkipBtn.Redraw()
         ToolTip("⏭ 已取消，將繼續循環行程")
         SetTimer(() => ToolTip(), -2000)
     } else {
         StopAfterCurrentLoop := true
-        SkipBtn.Opt("cRed")
+        SkipBtn.SetFont("cRed")
         SkipBtn.Redraw()
         ToolTip("⏭ 將於本輪結束後自動停止...")
         SetTimer(() => ToolTip(), -2000)
@@ -628,9 +694,9 @@ UpdateUiRunningState(btnName) {
         MyGui.Show("X" GuiX " Y" GuiY " W40 h" GuiH " NoActivate")
     } else if (btnName == "newSeq" || btnName == "seq" || btnName == "rival" || btnName == "buyCar") {
         if (StopAfterCurrentLoop) {
-            SkipBtn.Opt("cRed")
+            SkipBtn.SetFont("cRed")
         } else {
-            SkipBtn.Opt("cWhite")
+            SkipBtn.SetFont("cWhite")
         }
         SkipBtn.Visible := true
         SkipBtn.Move(40, -2)
@@ -650,7 +716,7 @@ UpdateUiRunningState(btnName) {
 }
 
 ResetUiToNormal() {
-    global GuiBtns, SkipBtn, MyGui, GuiX, GuiY, GuiH, GuiOpacity, PreProgressBar, ProgressBar, LoopProgressBar, ProgressText, ProgressPic, GameTitle, btnConfigs
+    global GuiBtns, SkipBtn, MyGui, GuiX, GuiY, GuiH, GuiOpacity, PreProgressBar, ProgressBar, LoopProgressBar, ProgressText, ProgressPic, GameTitle, btnConfigs, StopAfterCurrentLoop
     if (ProgressPic) {
         ProgressPic.Visible := false
     }
@@ -658,8 +724,11 @@ ResetUiToNormal() {
     ProgressBar.Visible := false
     LoopProgressBar.Visible := false
     ProgressText.Visible := false
-    SkipBtn.Visible := false
-    SkipBtn.Move(-100, -100)
+    if (SkipBtn) {
+        SkipBtn.SetFont("cWhite")
+        SkipBtn.Visible := false
+        SkipBtn.Move(-100, -100)
+    }
     StopAfterCurrentLoop := false
  
     currentX := 0
@@ -1726,7 +1795,7 @@ RunEnterSpamSequence() {
 }
 
 RunLButtonSequence(bypassConfirm := false) {
-    global MyGui, ProgressText, isSequenceRunning, LoopCountLimit, currentLoopItem, GuiX, GuiY, GuiH, loopStartTime, TotalMs, isConfirming, SkillPoints, globalSkillPath, currentLoopTotalMs, AutoLoopEnabled, AutoLoopCount, SkillBuyCarEnabled
+    global MyGui, ProgressText, isSequenceRunning, LoopCountLimit, currentLoopItem, GuiX, GuiY, GuiH, loopStartTime, TotalMs, isConfirming, SkillPoints, globalSkillPath, currentLoopTotalMs, AutoLoopEnabled, AutoLoopCount, SkillBuyCarEnabled, StopAfterCurrentLoop
     global sequenceStartTime, sequenceTotalSec, NewSequenceLoopLimit, globalSkillCost, globalSegmentEnds, globalTotalMs
     global BuyCarMfgUp, BuyCarMfgDown, BuyCarMfgLeft, BuyCarMfgRight, BuyCarSelUp, BuyCarSelDown, BuyCarSelLeft, BuyCarSelRight
     if (isSequenceRunning) {
@@ -2412,6 +2481,10 @@ RunLButtonSequence(bypassConfirm := false) {
             if (loopBreak)
                 break
 
+            if (StopAfterCurrentLoop) {
+                break
+            }
+
             if (isSequenceRunning && A_Index < LoopCountLimit) {
                 if (!SleepAndCheck(1500)) {
                     loopBreak := true
@@ -2587,7 +2660,7 @@ ToggleBuyCarSequence() {
 }
 
 RunNewSequence(bypassConfirm := false) {
-    global isNewSequenceRunning, GameTitle, MyGui, NewSequenceLoopLimit, currentNewLoopItem, newLoopStartTime, NewSequenceTotalMs, GuiX, GuiY, GuiH, isConfirming, AutoLoopEnabled, AutoLoopCount, labcode, isPauseFocusCheck
+    global isNewSequenceRunning, GameTitle, MyGui, NewSequenceLoopLimit, currentNewLoopItem, newLoopStartTime, NewSequenceTotalMs, GuiX, GuiY, GuiH, isConfirming, AutoLoopEnabled, AutoLoopCount, labcode, isPauseFocusCheck, StopAfterCurrentLoop
     global sequenceStartTime, sequenceTotalSec, globalSkillCost, globalSegmentEnds, globalTotalMs
     if (isNewSequenceRunning) {
         return
@@ -3109,7 +3182,7 @@ RunNewSequence(bypassConfirm := false) {
                 break
             }
 
-            isLastLoop := (completedLoops == NewSequenceLoopLimit)
+            isLastLoop := (completedLoops == NewSequenceLoopLimit || StopAfterCurrentLoop)
             currentActions := isLastLoop ? lastLoopActions : loopActions
             restartFromStep1 := false
 
@@ -3266,7 +3339,7 @@ RunNewSequence(bypassConfirm := false) {
                     ; ----------------------------------------------------
                     ; 放開 W 鍵後的按鍵與顏色偵測流程
                     ; ----------------------------------------------------
-                    if (!isLastLoop) {
+                    if (!isLastLoop && !StopAfterCurrentLoop) {
                         ShowTip("15-2. 重新開始：按 Enter")
                         if (!SendKey("Enter", 250, 500, &isNewSequenceRunning)) {
                             loopBreak := true
@@ -3324,7 +3397,7 @@ RunNewSequence(bypassConfirm := false) {
                             break
                         }
                     } else {
-                        ShowTip("15-2. 最後一次循環：按 Esc 結束")
+                        ShowTip("15-2. 本輪結束退出：按 Esc 結束")
                         if (!SendKey("Esc", 250, 1000, &isNewSequenceRunning)) {
                             loopBreak := true
                             break
@@ -3351,6 +3424,10 @@ RunNewSequence(bypassConfirm := false) {
                 break ; 跳出內層 while 循環，回到外層 while 重新執行 preActions (從第一步開始)！
             }
             if (loopBreak) {
+                break
+            }
+            if (StopAfterCurrentLoop) {
+                loopBreak := true
                 break
             }
         }
@@ -3383,7 +3460,7 @@ RunNewSequence(bypassConfirm := false) {
 }
 
 RunBuyCarSequence() {
-    global isBuyCarRunning, GameTitle, MyGui, BuyCarLoopLimit, currentBuyCarLoopItem, buyCarStartTime, BuyCarTotalMs, GuiX, GuiY, GuiH, isConfirming
+    global isBuyCarRunning, GameTitle, MyGui, BuyCarLoopLimit, currentBuyCarLoopItem, buyCarStartTime, BuyCarTotalMs, GuiX, GuiY, GuiH, isConfirming, StopAfterCurrentLoop
     global sequenceStartTime, sequenceTotalSec, globalSegmentEnds, globalTotalMs
     global BuyCarMfgUp, BuyCarMfgDown, BuyCarMfgLeft, BuyCarMfgRight, BuyCarSelUp, BuyCarSelDown, BuyCarSelLeft, BuyCarSelRight
     if (isBuyCarRunning) {
@@ -3526,6 +3603,8 @@ RunBuyCarSequence() {
             }
         }
         if (loopBreak)
+            break
+        if (StopAfterCurrentLoop)
             break
     }
     ShowTip("")
@@ -3819,7 +3898,7 @@ StopGasAndClean() {
 
     StopAfterCurrentLoop := false
     if (SkipBtn) {
-        SkipBtn.Opt("cWhite")
+        SkipBtn.SetFont("cWhite")
         SkipBtn.Visible := false
         SkipBtn.Move(-100, -100)
     }
@@ -3931,7 +4010,7 @@ ToggleRivalSequence() {
 }
 
 RunRivalSequence() {
-    global isRivalRunning, GameTitle, MyGui, RivalThrottleSec, RivalLoopLimit, currentRivalLoopItem, rivalLoopStartTime, RivalTotalMs, GuiX, GuiY, GuiH, isConfirming, RivalLoadSec, RivalTransitionSec, RivalEndHour, RivalEndMin
+    global isRivalRunning, GameTitle, MyGui, RivalThrottleSec, RivalLoopLimit, currentRivalLoopItem, rivalLoopStartTime, RivalTotalMs, GuiX, GuiY, GuiH, isConfirming, RivalLoadSec, RivalTransitionSec, RivalEndHour, RivalEndMin, StopAfterCurrentLoop
     global sequenceStartTime, sequenceTotalSec, globalSegmentEnds, globalTotalMs
     global totalActionSteps, currentActIdx, currentStepStartTime, currentStepTotalMs
     if (isRivalRunning) {
@@ -3952,7 +4031,7 @@ RunRivalSequence() {
         { key: "Enter", press: 80, wait: 1500, tip: "11. 按 ⏎" },
         { key: "Left", press: 80, wait: 500, tip: "12. 性能R 按 ⬅" },
         { detectColor: 13, timeout: 9000, estimatedWait: 2500, retryStep12: true, tip: "12.5. 偵測性能R" }, ; 9s逾時：按 ⬅ 重試偵測
-        { detectRedR: 10, timeout: 9000, estimatedWait: 2500, retryRightLeft: true, actionKey: "y", press: 80, wait: 500, tip: "13. 等待詳細資訊紅底R➟按 Y" }, ; 9s逾時：按 ⮕ 再按 ⬅ 重試偵測
+        { detectRedR: 10, timeout: 90000, estimatedWait: 2500, retryEscStep12: true, actionKey: "y", press: 80, wait: 500, tip: "13. 等待詳細資訊紅底R➟按 Y" }, ; 90s逾時：按 Esc 返回第 12 步重試
         { detectRedR: 9, timeout: 9000, retryYStep14: true, actionKey: "Enter", press: 80, wait: 500, estimatedWait: 2500, tip: "14. 等待勁敵列表紅底R➟按 ⏎" }, ; 9s逾時：按 Y 重試
         { detectRedR: 10, timeout: 9000, estimatedWait: 2500, retryEscStep15: true, actionKey: "Enter", press: 80, wait: 500, tip: "15. 等待詳細資訊紅底R➟按 ⏎" }, ; 9s逾時：按 Esc 返回第 14 步重試
         { key: "y", press: 80, wait: 500, tip: "16. 我的最愛 按 Y" },
@@ -3968,7 +4047,7 @@ RunRivalSequence() {
         { key: "Enter", press: 80, wait: 500, tip: "25. 按 ⏎" },
         { key: "Enter", press: 80, wait: 500, tip: "26. 按 ⏎" },
         { sleep: 10000, countdown: true, tip: "等待 10 秒過場" },
-        { detectColor: 6, press: 80, wait: 500, estimatedWait: 5000, tip: "27. 等待儀表板出現" }
+        { detectColor: 6, timeout: 35000, retryStep11: true, press: 80, wait: 500, estimatedWait: 5000, tip: "27. 等待儀表板出現" } ; 35秒逾時：跳到第 11 步
     ]
 
     global staticActionStartMs := [], staticActionDurMs := []
@@ -4237,10 +4316,10 @@ RunRivalSequence() {
                         SendKey("Left", 80, 500, &isRivalRunning)
                         continue
                     }
-                    if (action.HasOwnProp("retryRightLeft") && action.retryRightLeft && isRivalRunning) {
-                        ShowTip("13. 9秒未偵測到詳細資訊紅底R：按 ⮕ 再按 ⬅ 重試偵測...")
-                        SendKey("Right", 80, 500, &isRivalRunning)
-                        SendKey("Left", 80, 500, &isRivalRunning)
+                    if (action.HasOwnProp("retryEscStep12") && action.retryEscStep12 && isRivalRunning) {
+                        ShowTip("13. 9秒未偵測到詳細資訊紅底R：按 Esc 返回第 12 步重試...")
+                        SendKey("Esc", 80, 500, &isRivalRunning)
+                        actIdx := 11
                         continue
                     }
                     if (action.HasOwnProp("retryYStep14") && action.retryYStep14 && isRivalRunning) {
@@ -4258,6 +4337,17 @@ RunRivalSequence() {
                         ShowTip("16.5. 9秒未偵測到篩選綠色區域：按 Y 重試偵測...")
                         SendKey("y", 80, 500, &isRivalRunning)
                         continue
+                    }
+                    if (action.HasOwnProp("retryStep11") && action.retryStep11 && isRivalRunning) {
+                        if (!StopAfterCurrentLoop) {
+                            ShowTip("27. 35秒未偵測到儀表板：跳到第 11 步...")
+                            actIdx := 10
+                            continue
+                        } else {
+                            ShowTip("27. 本輪結束：已退出賽事返回自由模式")
+                            loopBreak := true
+                            break
+                        }
                     }
                     loopBreak := true
                     break
@@ -4331,6 +4421,8 @@ RunRivalSequence() {
             actIdx++
         }
         if (loopBreak)
+            break
+        if (StopAfterCurrentLoop)
             break
     }
 
@@ -4629,6 +4721,9 @@ WM_LBUTTONDOWN(wParam, lParam, msg, hwnd) {
         }
     }
 
+    if (SkipBtn != "" && hwnd == SkipBtn.Hwnd) {
+        return
+    }
     for btn in GuiBtns {
         if (hwnd == btn.Hwnd) {
             return
