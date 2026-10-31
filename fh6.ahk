@@ -3545,8 +3545,6 @@ RunNewSequence(bypassConfirm := false) {
                         if (hasSeenBlack && isNewSequenceRunning) {
                             SendInput("{w Down}")
                             wHoldStart := A_TickCount
-                            lastWSubKeyTime := wHoldStart
-                            nextWSubKey := "Up"
 
                             while (isNewSequenceRunning) {
                                 if (!isPauseFocusCheck && (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
@@ -3563,11 +3561,6 @@ RunNewSequence(bypassConfirm := false) {
                                     ShowTip("15-1. 偵測到介面消失：緩衝等待 1 秒後鬆開 W...")
                                     CountdownSleep(2000, "15-1. 介面消失：緩衝等待 2 秒準備鬆開 W")
                                     break
-                                }
-
-                                if (A_TickCount - lastWSubKeyTime >= 5000) {
-                                    SendWPeriodicKey(&nextWSubKey)
-                                    lastWSubKeyTime := A_TickCount
                                 }
 
                                 estMs := action.HasOwnProp("estimatedWait") ? action.estimatedWait : 24000
@@ -4081,18 +4074,10 @@ InfiniteGasLoop() {
             Send("{w Down}")
         }
 
-        lastWSubKeyTime := A_TickCount
-        nextWSubKey := "Up"
-
         while (isGasOn && (A_TickCount - startTime < randomHoldTime)) {
             if (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd)) {
                 StopGasAndClean()
                 return
-            }
-
-            if (A_TickCount - lastWSubKeyTime >= 5000) {
-                SendWPeriodicKey(&nextWSubKey)
-                lastWSubKeyTime := A_TickCount
             }
 
             Sleep(100)
@@ -4822,21 +4807,6 @@ ForceReleaseW_Hardware() {
     Sleep(20)
 }
 
-SendWPeriodicKey(&nextWSubKey) {
-    if (nextWSubKey == "Up") {
-        Send("{Up down}")
-        Sleep(80)
-        Send("{Up up}")
-        nextWSubKey := "h"
-    } else {
-        Send("{h down}")
-        Sleep(80)
-        Send("{h up}")
-        nextWSubKey := "Up"
-    }
-    SendInput("{w Down}")
-}
-
 FormatSecToMinSec(totalSec) {
     sec := Integer(totalSec)
     if (sec <= 0)
@@ -4854,17 +4824,10 @@ FormatSecToMinSec(totalSec) {
 HoldWWithPeriodicKeys(totalMs, prefix, &isRunning) {
     global GameTitle, MyGui, isPauseFocusCheck
     startTime := A_TickCount
-    lastWSubKeyTime := startTime
-    nextWSubKey := "Up"
 
     while (isRunning && (A_TickCount - startTime < totalMs)) {
         if (!isPauseFocusCheck && (!WinActive(GameTitle) && !WinActive("ahk_id " MyGui.Hwnd))) {
             return false
-        }
-        
-        if (A_TickCount - lastWSubKeyTime >= 5000) {
-            SendWPeriodicKey(&nextWSubKey)
-            lastWSubKeyTime := A_TickCount
         }
 
         elapsedMs := A_TickCount - startTime
