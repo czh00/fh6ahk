@@ -1,4 +1,14 @@
-# 忽略 AHK 備份檔案
-fh6_2606*.ahk
+# 忽略 AHK 備份檔案與目錄
+bak/
+*.bak
+*.ahk.bak
+fh6_2*.ahk
+!fh6.ahk
+
+# 忽略本地配置與暫存
+*.ini
+fh6.ini
 fh6.txt
 fh6_portable/
+*.tmp
+*.log
